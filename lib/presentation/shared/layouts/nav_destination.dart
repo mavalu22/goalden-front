@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../today/screens/today_screen.dart';
 
 class NavDestination {
   const NavDestination({
@@ -22,7 +23,7 @@ final navDestinations = <NavDestination>[
     label: 'Today',
     icon: Icons.today_outlined,
     activeIcon: Icons.today,
-    placeholder: _PlaceholderScreen(label: 'Today'),
+    placeholder: TodayScreen(),
   ),
   NavDestination(
     label: 'Week',
