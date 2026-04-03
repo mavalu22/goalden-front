@@ -6,8 +6,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../domain/models/task.dart';
+import '../../../domain/models/task.dart' show Task;
 import '../providers/today_provider.dart';
+import '../widgets/task_tile.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -237,7 +238,7 @@ class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
   }
 }
 
-// ─── Task list (minimal — full rendering in TASK-013) ────────────────────────
+// ─── Task list ────────────────────────────────────────────────────────────────
 
 class _TaskList extends StatelessWidget {
   const _TaskList({required this.tasks});
@@ -246,77 +247,14 @@ class _TaskList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sorted = sortTasks(tasks);
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      itemCount: tasks.length,
+      itemCount: sorted.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (_, i) => _TaskTile(task: tasks[i]),
-    );
-  }
-}
-
-class _TaskTile extends ConsumerWidget {
-  const _TaskTile({required this.task});
-
-  final Task task;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () =>
-                ref.read(taskActionsProvider.notifier).toggleDone(task),
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: task.done ? AppColors.golden : Colors.transparent,
-                border: Border.all(
-                  color: task.done ? AppColors.golden : AppColors.border,
-                  width: 1.5,
-                ),
-              ),
-              child: task.done
-                  ? const Icon(
-                      Icons.check,
-                      size: 14,
-                      color: AppColors.background,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              task.title,
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 14,
-                color: task.done
-                    ? AppColors.textMuted
-                    : AppColors.textPrimary,
-                decoration:
-                    task.done ? TextDecoration.lineThrough : null,
-                decorationColor: AppColors.textMuted,
-              ),
-            ),
-          ),
-        ],
-      ),
+      itemBuilder: (_, i) => TaskTile(task: sorted[i]),
     );
   }
 }
