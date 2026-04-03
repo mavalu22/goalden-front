@@ -6,7 +6,6 @@ import '../../domain/models/task.dart';
 import '../../domain/repositories/task_repository.dart';
 import '../local/daos/task_dao.dart';
 import '../local/database.dart';
-import '../local/tables/task_table.dart';
 
 class TaskRepositoryImpl implements TaskRepository {
   TaskRepositoryImpl(this._dao);
