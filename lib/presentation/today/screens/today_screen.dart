@@ -254,7 +254,8 @@ class _TaskList extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       itemCount: sorted.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (_, i) => TaskTile(task: sorted[i]),
+      // ValueKey ensures Flutter tracks each tile by task id across rebuilds
+      itemBuilder: (_, i) => TaskTile(key: ValueKey(sorted[i].id), task: sorted[i]),
     );
   }
 }
