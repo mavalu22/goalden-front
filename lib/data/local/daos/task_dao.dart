@@ -91,4 +91,16 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
                   t.done.equals(false),
             ))
           .go();
+
+  /// All tasks within a date range [start, end] inclusive — reactive stream.
+  Stream<List<TaskEntry>> watchTasksForDateRange(DateTime start, DateTime end) {
+    final startUtc = DateTime.utc(start.year, start.month, start.day);
+    final endUtc = DateTime.utc(end.year, end.month, end.day + 1); // exclusive end
+    return (select(tasks)
+          ..where(
+            (t) => t.date.isBiggerOrEqualValue(startUtc) &
+                t.date.isSmallerThanValue(endUtc),
+          ))
+        .watch();
+  }
 }
