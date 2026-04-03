@@ -64,6 +64,13 @@ class TaskRepositoryImpl implements TaskRepository {
     await _dao.deleteOldPendingTasks(cutoffUtc);
   }
 
+  @override
+  Stream<List<Task>> watchTasksForDateRange(DateTime start, DateTime end) {
+    return _dao.watchTasksForDateRange(start, end).map(
+          (entries) => entries.map(_fromEntry).toList(),
+        );
+  }
+
   // ─── Mapping ─────────────────────────────────────────────────────────────
 
   Task _fromEntry(TaskEntry e) {

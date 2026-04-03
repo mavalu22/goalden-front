@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../today/screens/today_screen.dart';
+import '../../week/screens/week_screen.dart';
 
 class NavDestination {
   const NavDestination({
@@ -19,25 +20,25 @@ class NavDestination {
 }
 
 final navDestinations = <NavDestination>[
-  NavDestination(
+  const NavDestination(
     label: 'Today',
     icon: Icons.today_outlined,
     activeIcon: Icons.today,
     placeholder: TodayScreen(),
   ),
-  NavDestination(
+  const NavDestination(
     label: 'Week',
     icon: Icons.view_week_outlined,
     activeIcon: Icons.view_week,
-    placeholder: _PlaceholderScreen(label: 'Week'),
+    placeholder: WeekScreen(),
   ),
-  NavDestination(
+  const NavDestination(
     label: 'Goals',
     icon: Icons.star_outline,
     activeIcon: Icons.star,
     placeholder: _PlaceholderScreen(label: 'Goals'),
   ),
-  NavDestination(
+  const NavDestination(
     label: 'History',
     icon: Icons.history,
     activeIcon: Icons.history,

@@ -27,4 +27,7 @@ abstract class TaskRepository {
 
   /// Delete all uncompleted tasks pending for more than [days] days.
   Future<void> deleteOldPendingTasks({int days = 7});
+
+  /// Reactive stream of all tasks within a date range [start, end] inclusive.
+  Stream<List<Task>> watchTasksForDateRange(DateTime start, DateTime end);
 }
