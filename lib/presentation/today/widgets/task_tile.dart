@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -8,162 +8,338 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../providers/today_provider.dart';
 
-class TaskTile extends ConsumerWidget {
+class TaskTile extends ConsumerStatefulWidget {
   const TaskTile({super.key, required this.task});
 
   final Task task;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isCompleted = task.done;
-    final isHigh = task.priority == TaskPriority.high && !isCompleted;
-
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 250),
-      opacity: isCompleted ? 0.45 : 1.0,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isHigh ? AppColors.goldenBorder : AppColors.border,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Circle checkbox with scale pop animation on toggle
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () =>
-                  ref.read(taskActionsProvider.notifier).toggleDone(task),
-              child: _Checkbox(done: isCompleted, taskId: task.id),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            // Title with animated strikethrough via CrossFade
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Align(
-                  key: ValueKey(isCompleted),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    task.title,
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: isCompleted
-                          ? AppColors.textMuted
-                          : AppColors.textPrimary,
-                      decoration:
-                          isCompleted ? TextDecoration.lineThrough : null,
-                      decorationColor: AppColors.textMuted,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // HIGH badge (only on uncompleted high priority tasks)
-            if (isHigh) ...[
-              const SizedBox(width: AppSpacing.sm),
-              const _HighBadge(),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  ConsumerState<TaskTile> createState() => _TaskTileState();
 }
 
-class _Checkbox extends StatefulWidget {
-  const _Checkbox({required this.done, required this.taskId});
-
-  final bool done;
-  final String taskId;
-
-  @override
-  State<_Checkbox> createState() => _CheckboxState();
-}
-
-class _CheckboxState extends State<_Checkbox>
+class _TaskTileState extends ConsumerState<TaskTile>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scale;
+  late AnimationController _checkController;
+  late Animation<double> _checkScale;
   bool _prevDone = false;
+
+  late TextEditingController _noteController;
 
   @override
   void initState() {
     super.initState();
-    _prevDone = widget.done;
-    _controller = AnimationController(
+    _prevDone = widget.task.done;
+    _checkController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-    _scale = Tween<double>(begin: 1.0, end: 1.0).animate(_controller);
+    _checkScale = Tween<double>(begin: 1.0, end: 1.0).animate(_checkController);
+    _noteController =
+        TextEditingController(text: widget.task.note ?? '');
   }
 
   @override
-  void didUpdateWidget(_Checkbox oldWidget) {
+  void didUpdateWidget(TaskTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Play scale pop only when transitioning to done
-    if (!_prevDone && widget.done) {
-      _playPop();
+    if (!_prevDone && widget.task.done) _playPop();
+    _prevDone = widget.task.done;
+    // Sync note controller if task updated externally
+    if (oldWidget.task.note != widget.task.note &&
+        _noteController.text != (widget.task.note ?? '')) {
+      _noteController.text = widget.task.note ?? '';
     }
-    _prevDone = widget.done;
-  }
-
-  void _playPop() {
-    _scale = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 0.75),
-        weight: 30,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 0.75, end: 1.2),
-        weight: 40,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.2, end: 1.0),
-        weight: 30,
-      ),
-    ]).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
-    _controller
-      ..reset()
-      ..forward();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _checkController.dispose();
+    _noteController.dispose();
     super.dispose();
+  }
+
+  void _playPop() {
+    _checkScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.75), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.75, end: 1.2), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 30),
+    ]).animate(CurvedAnimation(
+      parent: _checkController,
+      curve: Curves.easeInOut,
+    ));
+    _checkController
+      ..reset()
+      ..forward();
+  }
+
+  void _toggleExpanded() {
+    final current = ref.read(expandedTaskIdProvider);
+    ref.read(expandedTaskIdProvider.notifier).state =
+        current == widget.task.id ? null : widget.task.id;
+  }
+
+  void _saveNote(String value) {
+    final trimmed = value.trim().isEmpty ? null : value.trim();
+    if (trimmed == widget.task.note) return;
+    ref
+        .read(taskActionsProvider.notifier)
+        .updateTask(widget.task.copyWith(note: trimmed));
+  }
+
+  void _togglePriority() {
+    final next = widget.task.priority == TaskPriority.high
+        ? TaskPriority.normal
+        : TaskPriority.high;
+    ref
+        .read(taskActionsProvider.notifier)
+        .updateTask(widget.task.copyWith(priority: next));
   }
 
   @override
   Widget build(BuildContext context) {
+    final isCompleted = widget.task.done;
+    final isHigh = widget.task.priority == TaskPriority.high && !isCompleted;
+    final expandedId = ref.watch(expandedTaskIdProvider);
+    final isExpanded = expandedId == widget.task.id;
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 250),
+      opacity: isCompleted ? 0.45 : 1.0,
+      child: GestureDetector(
+        onTap: _toggleExpanded,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isExpanded
+                  ? AppColors.goldenBorder
+                  : isHigh
+                      ? AppColors.goldenBorder
+                      : AppColors.border,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Main row ──────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                child: Row(
+                  children: [
+                    // Checkbox — stops tap from propagating to expand
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        ref
+                            .read(taskActionsProvider.notifier)
+                            .toggleDone(widget.task);
+                      },
+                      child: _buildCheckbox(),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Align(
+                          key: ValueKey(isCompleted),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            widget.task.title,
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFont,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: isCompleted
+                                  ? AppColors.textMuted
+                                  : AppColors.textPrimary,
+                              decoration: isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              decorationColor: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (isHigh && !isExpanded) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      const _HighBadge(),
+                    ],
+                    const SizedBox(width: AppSpacing.xs),
+                    Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Expansion panel ───────────────────────────────────────────
+              AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeInOut,
+                child: isExpanded
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: AppColors.borderSubtle,
+                            indent: AppSpacing.lg,
+                            endIndent: AppSpacing.lg,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.lg,
+                              AppSpacing.sm,
+                              AppSpacing.lg,
+                              AppSpacing.md,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Note field
+                                TextField(
+                                  controller: _noteController,
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFont,
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    hintText: 'Add a note...',
+                                    hintStyle: TextStyle(
+                                      fontFamily: AppTypography.bodyFont,
+                                      fontSize: 13,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  maxLines: null,
+                                  onChanged: (_) {},
+                                  onEditingComplete: () =>
+                                      _saveNote(_noteController.text),
+                                  onTapOutside: (_) =>
+                                      _saveNote(_noteController.text),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                // Meta row: date + priority toggle
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 13,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    const SizedBox(width: AppSpacing.xs),
+                                    Text(
+                                      DateFormat('MMM d')
+                                          .format(widget.task.date),
+                                      style: const TextStyle(
+                                        fontFamily: AppTypography.bodyFont,
+                                        fontSize: 12,
+                                        color: AppColors.textMuted,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    // Priority toggle
+                                    GestureDetector(
+                                      onTap: _togglePriority,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppSpacing.sm,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: widget.task.priority ==
+                                                  TaskPriority.high
+                                              ? AppColors.goldenDim
+                                              : AppColors.surface,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: widget.task.priority ==
+                                                    TaskPriority.high
+                                                ? AppColors.goldenBorder
+                                                : AppColors.border,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.flag_outlined,
+                                              size: 12,
+                                              color: widget.task.priority ==
+                                                      TaskPriority.high
+                                                  ? AppColors.golden
+                                                  : AppColors.textMuted,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              widget.task.priority ==
+                                                      TaskPriority.high
+                                                  ? 'High'
+                                                  : 'Normal',
+                                              style: TextStyle(
+                                                fontFamily:
+                                                    AppTypography.bodyFont,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: widget.task.priority ==
+                                                        TaskPriority.high
+                                                    ? AppColors.golden
+                                                    : AppColors.textMuted,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckbox() {
     return AnimatedBuilder(
-      animation: _controller,
+      animation: _checkController,
       builder: (_, __) => Transform.scale(
-        scale: _scale.value,
+        scale: _checkScale.value,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           width: 22,
           height: 22,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: widget.done ? AppColors.golden : Colors.transparent,
+            color: widget.task.done ? AppColors.golden : Colors.transparent,
             border: Border.all(
-              color: widget.done ? AppColors.golden : AppColors.border,
+              color: widget.task.done ? AppColors.golden : AppColors.border,
               width: 1.5,
             ),
           ),
-          child: widget.done
+          child: widget.task.done
               ? const Icon(
                   Icons.check,
                   size: 13,
@@ -182,10 +358,7 @@ class _HighBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 3,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.goldenDim,
         borderRadius: BorderRadius.circular(6),
