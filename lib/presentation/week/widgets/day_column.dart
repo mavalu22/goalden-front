@@ -368,7 +368,7 @@ class _ColumnTaskRow extends ConsumerWidget {
 
     if (isPast) return row;
 
-    return Draggable<Task>(
+    return LongPressDraggable<Task>(
       data: task,
       feedback: Material(
         color: Colors.transparent,
