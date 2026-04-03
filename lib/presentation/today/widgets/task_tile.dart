@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../providers/today_provider.dart';
+import 'postpone_sheet.dart';
 
 class TaskTile extends ConsumerStatefulWidget {
   const TaskTile({super.key, required this.task});
@@ -101,13 +103,58 @@ class _TaskTileState extends ConsumerState<TaskTile>
     final expandedId = ref.watch(expandedTaskIdProvider);
     final isExpanded = expandedId == widget.task.id;
 
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 250),
-      opacity: isCompleted ? 0.45 : 1.0,
-      child: GestureDetector(
-        onTap: _toggleExpanded,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
+    return Slidable(
+      key: ValueKey(widget.task.id),
+      // Swipe left → postpone action
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.35,
+        children: [
+          CustomSlidableAction(
+            onPressed: (ctx) async {
+              final picked = await showPostponeSheet(ctx);
+              if (picked != null) {
+                final newDate = DateTime.utc(
+                  picked.year,
+                  picked.month,
+                  picked.day,
+                );
+                ref.read(taskActionsProvider.notifier).updateTask(
+                      widget.task.copyWith(date: newDate),
+                    );
+              }
+            },
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.textSecondary,
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(12),
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.arrow_forward, size: 18, color: AppColors.golden),
+                SizedBox(height: 4),
+                Text(
+                  'Postpone',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.golden,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 250),
+        opacity: isCompleted ? 0.45 : 1.0,
+        child: GestureDetector(
+          onTap: _toggleExpanded,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
@@ -318,6 +365,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
             ],
           ),
         ),
+      ),
       ),
     );
   }
