@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../widgets/social_auth_button.dart';
+import 'email_auth_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -91,11 +92,17 @@ class _DesktopLoginView extends StatelessWidget {
                   const _OrDivider(),
                   const SizedBox(height: AppSpacing.lg),
                   // Email button (primary — golden)
-                  SocialAuthButton(
-                    label: 'Sign in with Email',
-                    icon: const Icon(Icons.email_outlined, size: 18),
-                    onPressed: () {},
-                    style: SocialAuthButtonStyle.primary,
+                  Builder(
+                    builder: (context) => SocialAuthButton(
+                      label: 'Sign in with Email',
+                      icon: const Icon(Icons.email_outlined, size: 18),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const EmailAuthScreen(),
+                        ),
+                      ),
+                      style: SocialAuthButtonStyle.primary,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   // Footer
@@ -183,16 +190,22 @@ class _MobileLoginView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xxl),
           // Email — text link
           Center(
-            child: GestureDetector(
-              onTap: () {},
-              child: const Text(
-                'Sign in with email',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.textSecondary,
+            child: Builder(
+              builder: (context) => GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const EmailAuthScreen(),
+                  ),
+                ),
+                child: const Text(
+                  'Sign in with email',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ),
