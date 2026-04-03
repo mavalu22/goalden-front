@@ -105,6 +105,42 @@ class _TaskTileState extends ConsumerState<TaskTile>
 
     return Slidable(
       key: ValueKey(widget.task.id),
+      // Swipe right → remove action
+      startActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.3,
+        dismissible: DismissiblePane(
+          onDismissed: () =>
+              ref.read(taskActionsProvider.notifier).deleteTask(widget.task.id),
+        ),
+        children: [
+          CustomSlidableAction(
+            onPressed: (_) =>
+                ref.read(taskActionsProvider.notifier).deleteTask(widget.task.id),
+            backgroundColor: AppColors.error,
+            foregroundColor: Colors.white,
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(12),
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.delete_outline, size: 18, color: Colors.white),
+                SizedBox(height: 4),
+                Text(
+                  'Remove',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
       // Swipe left → postpone action
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
