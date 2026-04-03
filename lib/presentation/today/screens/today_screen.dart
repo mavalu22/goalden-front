@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart' show Task;
 import '../providers/today_provider.dart';
 import '../utils/task_sort.dart';
+import '../widgets/pending_section.dart';
 import '../widgets/task_tile.dart';
 
 class TodayScreen extends ConsumerWidget {
@@ -82,8 +83,18 @@ class _MobileTodayView extends ConsumerWidget {
         Expanded(
           child: tasksAsync.when(
             data: (tasks) => tasks.isEmpty
-                ? const _EmptyState()
-                : _TaskList(tasks: tasks),
+                ? const _EmptyStateWithPending()
+                : ListView(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                        child: PendingSection(),
+                      ),
+                      _TaskList(tasks: tasks),
+                    ],
+                  ),
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const _EmptyState(),
           ),
@@ -140,6 +151,7 @@ class _DesktopTodayView extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xxl),
           const _QuickTaskInput(hint: 'Pick a task to focus on...'),
           const SizedBox(height: AppSpacing.xxxl),
+          const PendingSection(),
           tasksAsync.when(
             data: (tasks) => tasks.isEmpty
                 ? const _EmptyState()
@@ -305,6 +317,23 @@ class _TaskList extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// ─── Empty state with pending section ────────────────────────────────────────
+
+class _EmptyStateWithPending extends StatelessWidget {
+  const _EmptyStateWithPending();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      children: const [
+        PendingSection(),
+        _EmptyState(),
+      ],
     );
   }
 }
