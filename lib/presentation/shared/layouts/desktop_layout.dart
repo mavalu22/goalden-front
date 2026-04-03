@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../providers/auth_provider.dart';
 import 'nav_destination.dart';
 
 class DesktopLayout extends StatelessWidget {
@@ -36,7 +38,7 @@ class DesktopLayout extends StatelessWidget {
   }
 }
 
-class _Sidebar extends StatelessWidget {
+class _Sidebar extends ConsumerWidget {
   const _Sidebar({
     required this.selectedIndex,
     required this.onDestinationSelected,
@@ -46,7 +48,7 @@ class _Sidebar extends StatelessWidget {
   final ValueChanged<int> onDestinationSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       width: AppConstants.sidebarWidth,
       child: Column(
@@ -124,7 +126,7 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
 
-          // User profile placeholder
+          // User profile + settings
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg,
@@ -134,10 +136,10 @@ class _Sidebar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 14,
                   backgroundColor: AppColors.surface,
-                  child: const Icon(
+                  child: Icon(
                     Icons.person_outline,
                     size: 16,
                     color: AppColors.textMuted,
@@ -145,20 +147,52 @@ class _Sidebar extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Account',
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFont,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'Account',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
+                ),
+                PopupMenuButton<_SettingsAction>(
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                  padding: EdgeInsets.zero,
+                  color: AppColors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  onSelected: (action) {
+                    if (action == _SettingsAction.logout) {
+                      ref.read(authActionsProvider.notifier).signOut();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: _SettingsAction.logout,
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, size: 16, color: AppColors.textSecondary),
+                          SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'Log out',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFont,
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -223,3 +257,5 @@ class _SidebarNavItem extends StatelessWidget {
     );
   }
 }
+
+enum _SettingsAction { logout }
