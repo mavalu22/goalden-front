@@ -15,6 +15,15 @@ final todayTasksProvider = StreamProvider<List<Task>>((ref) {
   return ref.watch(taskRepositoryProvider).watchTasksForDate(now);
 });
 
+/// Reactive stream of uncompleted tasks from previous days.
+/// Also triggers cleanup of tasks older than 7 days on initialization.
+final pendingTasksProvider = StreamProvider<List<Task>>((ref) {
+  // One-shot cleanup on provider init
+  ref.read(taskRepositoryProvider).deleteOldPendingTasks(days: 7);
+  final now = DateTime.now();
+  return ref.watch(taskRepositoryProvider).watchPendingTasksBefore(now);
+});
+
 /// Handles task mutations (create, update, delete).
 final taskActionsProvider =
     AsyncNotifierProvider<TaskActionsNotifier, void>(TaskActionsNotifier.new);
@@ -54,5 +63,13 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
 
   Future<void> reorderTasks(List<Task> reordered) async {
     await ref.read(taskRepositoryProvider).reorderTasks(reordered);
+  }
+
+  Future<void> rescheduleToToday(Task task) async {
+    final now = DateTime.now();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    await ref
+        .read(taskRepositoryProvider)
+        .updateTask(task.copyWith(date: today));
   }
 }
