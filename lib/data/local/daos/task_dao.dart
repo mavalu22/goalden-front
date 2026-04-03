@@ -45,6 +45,18 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
         .watch();
   }
 
+  /// Watch uncompleted tasks with a date strictly before [date] — reactive stream.
+  Stream<List<TaskEntry>> watchPendingTasksBefore(DateTime date) {
+    final dayStart = DateTime.utc(date.year, date.month, date.day);
+    return (select(tasks)
+          ..where(
+            (t) =>
+                t.date.isSmallerThanValue(dayStart) &
+                t.done.equals(false),
+          ))
+        .watch();
+  }
+
   Future<void> insertTask(TasksCompanion entry) =>
       into(tasks).insert(entry);
 
@@ -53,4 +65,30 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   Future<int> deleteTask(String id) =>
       (delete(tasks)..where((t) => t.id.equals(id))).go();
+
+  /// Update sortOrder for a specific task by id.
+  Future<void> updateSortOrder(String id, int order) =>
+      (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(sortOrder: Value(order)),
+      );
+
+  /// Batch update sortOrder for multiple tasks in a single transaction.
+  Future<void> reorderTasksBatch(List<({String id, int order})> updates) =>
+      transaction(() async {
+        for (final u in updates) {
+          await (this.update(tasks)..where((t) => t.id.equals(u.id))).write(
+            TasksCompanion(sortOrder: Value(u.order)),
+          );
+        }
+      });
+
+  /// Delete uncompleted tasks with a date before [cutoff].
+  Future<int> deleteOldPendingTasks(DateTime cutoff) =>
+      (delete(tasks)
+            ..where(
+              (t) =>
+                  t.date.isSmallerThanValue(cutoff) &
+                  t.done.equals(false),
+            ))
+          .go();
 }
