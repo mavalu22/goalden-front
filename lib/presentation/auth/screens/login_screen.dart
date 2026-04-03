@@ -1,44 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../providers/auth_provider.dart';
 import '../widgets/social_auth_button.dart';
 import 'email_auth_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Listen for auth errors and surface them as snackbars
+    ref.listen<AsyncValue<void>>(authActionsProvider, (_, next) {
+      next.whenOrNull(
+        error: (error, _) {
+          final message = _friendlyError(error);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+      );
+    });
+
+    final isLoading = ref.watch(authActionsProvider).isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth >= AppConstants.mobileBreakpoint) {
-            return const _DesktopLoginView();
+            return _DesktopLoginView(isLoading: isLoading, ref: ref);
           }
-          return const _MobileLoginView();
+          return _MobileLoginView(isLoading: isLoading, ref: ref);
         },
       ),
     );
+  }
+
+  String _friendlyError(Object error) {
+    final msg = error.toString().toLowerCase();
+    if (msg.contains('cancelled') || msg.contains('canceled')) {
+      return 'Sign-in was cancelled.';
+    }
+    if (msg.contains('network')) return 'Check your internet connection.';
+    return 'Sign-in failed. Please try again.';
   }
 }
 
 // ─── Desktop ────────────────────────────────────────────────────────────────
 
 class _DesktopLoginView extends StatelessWidget {
-  const _DesktopLoginView();
+  const _DesktopLoginView({required this.isLoading, required this.ref});
+
+  final bool isLoading;
+  final WidgetRef ref;
+
+  void _signInWithGoogle() =>
+      ref.read(authActionsProvider.notifier).signInWithGoogle();
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Ambient background glow
         const _AmbientBackground(),
-        // Centered card
         Center(
           child: SizedBox(
             width: 380,
@@ -59,10 +92,8 @@ class _DesktopLoginView extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo
                   const _GoldenLogo(fontSize: 28, letterSpacing: 4),
                   const SizedBox(height: AppSpacing.sm),
-                  // Tagline
                   const Text(
                     'Your moves, simplified.',
                     style: TextStyle(
@@ -72,40 +103,49 @@ class _DesktopLoginView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
-                  // Apple button
+                  // Apple (wired in TASK-007)
                   SocialAuthButton(
                     label: 'Continue with Apple',
                     icon: const _AppleIcon(),
-                    onPressed: () {},
+                    onPressed: isLoading ? null : () {},
                     style: SocialAuthButtonStyle.dark,
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  // Google button
+                  // Google
                   SocialAuthButton(
-                    label: 'Continue with Google',
-                    icon: const _GoogleIcon(),
-                    onPressed: () {},
+                    label: isLoading ? '' : 'Continue with Google',
+                    icon: isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.textPrimary,
+                            ),
+                          )
+                        : const _GoogleIcon(),
+                    onPressed: isLoading ? null : _signInWithGoogle,
                     style: SocialAuthButtonStyle.dark,
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  // Divider
                   const _OrDivider(),
                   const SizedBox(height: AppSpacing.lg),
-                  // Email button (primary — golden)
+                  // Email
                   Builder(
-                    builder: (context) => SocialAuthButton(
+                    builder: (ctx) => SocialAuthButton(
                       label: 'Sign in with Email',
                       icon: const Icon(Icons.email_outlined, size: 18),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const EmailAuthScreen(),
-                        ),
-                      ),
+                      onPressed: isLoading
+                          ? null
+                          : () => Navigator.of(ctx).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const EmailAuthScreen(),
+                                ),
+                              ),
                       style: SocialAuthButtonStyle.primary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
-                  // Footer
                   GestureDetector(
                     onTap: () {},
                     child: RichText(
@@ -142,7 +182,13 @@ class _DesktopLoginView extends StatelessWidget {
 // ─── Mobile ─────────────────────────────────────────────────────────────────
 
 class _MobileLoginView extends StatelessWidget {
-  const _MobileLoginView();
+  const _MobileLoginView({required this.isLoading, required this.ref});
+
+  final bool isLoading;
+  final WidgetRef ref;
+
+  void _signInWithGoogle() =>
+      ref.read(authActionsProvider.notifier).signInWithGoogle();
 
   @override
   Widget build(BuildContext context) {
@@ -159,10 +205,8 @@ class _MobileLoginView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo — large, letter-spaced
           const _GoldenLogo(fontSize: 40, letterSpacing: 10),
           const SizedBox(height: AppSpacing.sm),
-          // Tagline
           const Text(
             'Your week, simplified.',
             style: TextStyle(
@@ -172,39 +216,53 @@ class _MobileLoginView extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // Google button (light/outlined style on mobile)
+          // Google
           SocialAuthButton(
-            label: 'Sign in with Google',
-            icon: const _GoogleIcon(),
-            onPressed: () {},
+            label: isLoading ? '' : 'Sign in with Google',
+            icon: isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  )
+                : const _GoogleIcon(),
+            onPressed: isLoading ? null : _signInWithGoogle,
             style: SocialAuthButtonStyle.light,
           ),
           const SizedBox(height: AppSpacing.sm),
-          // Apple button (black on mobile)
+          // Apple (wired in TASK-007)
           SocialAuthButton(
             label: 'Sign in with Apple',
             icon: const _AppleIcon(color: Colors.white),
-            onPressed: () {},
+            onPressed: isLoading ? null : () {},
             style: SocialAuthButtonStyle.black,
           ),
           const SizedBox(height: AppSpacing.xxl),
-          // Email — text link
           Center(
             child: Builder(
-              builder: (context) => GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const EmailAuthScreen(),
-                  ),
-                ),
-                child: const Text(
+              builder: (ctx) => GestureDetector(
+                onTap: isLoading
+                    ? null
+                    : () => Navigator.of(ctx).push(
+                          MaterialPageRoute(
+                            builder: (_) => const EmailAuthScreen(),
+                          ),
+                        ),
+                child: Text(
                   'Sign in with email',
                   style: TextStyle(
                     fontFamily: AppTypography.bodyFont,
                     fontSize: 14,
-                    color: AppColors.textSecondary,
+                    color: isLoading
+                        ? AppColors.textMuted
+                        : AppColors.textSecondary,
                     decoration: TextDecoration.underline,
-                    decorationColor: AppColors.textSecondary,
+                    decorationColor: isLoading
+                        ? AppColors.textMuted
+                        : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -255,12 +313,12 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-        const Expanded(child: Divider(color: AppColors.border, height: 1)),
+        Expanded(child: Divider(color: AppColors.border, height: 1)),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: const Text(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Text(
             'or',
             style: TextStyle(
               fontFamily: AppTypography.bodyFont,
@@ -269,7 +327,7 @@ class _OrDivider extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(child: Divider(color: AppColors.border, height: 1)),
+        Expanded(child: Divider(color: AppColors.border, height: 1)),
       ],
     );
   }
@@ -324,7 +382,6 @@ class _GooglePainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    // Draw a simplified Google "G"
     final bgPaint = Paint()..color = Colors.white;
     canvas.drawCircle(center, radius, bgPaint);
 
