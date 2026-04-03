@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../domain/models/task.dart';
+import '../providers/today_provider.dart';
 
-class TodayScreen extends StatelessWidget {
+class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= AppConstants.mobileBreakpoint) {
@@ -24,14 +27,15 @@ class TodayScreen extends StatelessWidget {
 
 // ─── Mobile ──────────────────────────────────────────────────────────────────
 
-class _MobileTodayView extends StatelessWidget {
+class _MobileTodayView extends ConsumerWidget {
   const _MobileTodayView();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final dayOfWeek = DateFormat('EEEE').format(now).toUpperCase();
     final dateLabel = DateFormat('MMMM d').format(now);
+    final tasksAsync = ref.watch(todayTasksProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +50,6 @@ class _MobileTodayView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Day of week
               Text(
                 dayOfWeek,
                 style: const TextStyle(
@@ -58,7 +61,6 @@ class _MobileTodayView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              // Date
               Text(
                 dateLabel,
                 style: const TextStyle(
@@ -70,14 +72,20 @@ class _MobileTodayView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              // Quick task input
-              _QuickTaskInput(),
+              const _QuickTaskInput(),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        // Task list / empty state
-        const Expanded(child: _EmptyState()),
+        Expanded(
+          child: tasksAsync.when(
+            data: (tasks) => tasks.isEmpty
+                ? const _EmptyState()
+                : _TaskList(tasks: tasks),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const _EmptyState(),
+          ),
+        ),
       ],
     );
   }
@@ -85,14 +93,14 @@ class _MobileTodayView extends StatelessWidget {
 
 // ─── Desktop ─────────────────────────────────────────────────────────────────
 
-class _DesktopTodayView extends StatelessWidget {
+class _DesktopTodayView extends ConsumerWidget {
   const _DesktopTodayView();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
-    final focusLabel = "TODAY'S FOCUS";
     final dateLabel = DateFormat('EEEE, MMMM d').format(now);
+    final tasksAsync = ref.watch(todayTasksProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -104,10 +112,9 @@ class _DesktopTodayView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // "TODAY'S FOCUS" label
-          Text(
-            focusLabel,
-            style: const TextStyle(
+          const Text(
+            "TODAY'S FOCUS",
+            style: TextStyle(
               fontFamily: AppTypography.bodyFont,
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -116,7 +123,6 @@ class _DesktopTodayView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          // Date heading
           Text(
             dateLabel,
             style: const TextStyle(
@@ -128,26 +134,52 @@ class _DesktopTodayView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xxl),
-          // Quote card
           const _QuoteCard(),
           const SizedBox(height: AppSpacing.xxl),
-          // Task input
-          _QuickTaskInput(hint: 'Pick a task to focus on...'),
+          const _QuickTaskInput(hint: 'Pick a task to focus on...'),
           const SizedBox(height: AppSpacing.xxxl),
-          // Empty state
-          const _EmptyState(),
+          tasksAsync.when(
+            data: (tasks) => tasks.isEmpty
+                ? const _EmptyState()
+                : _TaskList(tasks: tasks),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const _EmptyState(),
+          ),
         ],
       ),
     );
   }
 }
 
-// ─── Shared widgets ──────────────────────────────────────────────────────────
+// ─── Quick task input ─────────────────────────────────────────────────────────
 
-class _QuickTaskInput extends StatelessWidget {
+class _QuickTaskInput extends ConsumerStatefulWidget {
   const _QuickTaskInput({this.hint = 'New task...'});
 
   final String hint;
+
+  @override
+  ConsumerState<_QuickTaskInput> createState() => _QuickTaskInputState();
+}
+
+class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final title = _controller.text.trim();
+    if (title.isEmpty) return;
+    _controller.clear();
+    _focusNode.requestFocus();
+    await ref.read(taskActionsProvider.notifier).createTask(title);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,13 +194,15 @@ class _QuickTaskInput extends StatelessWidget {
               border: Border.all(color: AppColors.border),
             ),
             child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
               style: const TextStyle(
                 fontFamily: AppTypography.bodyFont,
                 fontSize: 14,
                 color: AppColors.textPrimary,
               ),
               decoration: InputDecoration(
-                hintText: hint,
+                hintText: widget.hint,
                 hintStyle: const TextStyle(
                   fontFamily: AppTypography.bodyFont,
                   fontSize: 14,
@@ -180,24 +214,114 @@ class _QuickTaskInput extends StatelessWidget {
                   vertical: AppSpacing.md,
                 ),
               ),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
             ),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        // Golden "+" button
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.golden,
-            borderRadius: BorderRadius.circular(12),
+        GestureDetector(
+          onTap: _submit,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.golden,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.add, color: AppColors.background, size: 22),
           ),
-          child: const Icon(Icons.add, color: AppColors.background, size: 22),
         ),
       ],
     );
   }
 }
+
+// ─── Task list (minimal — full rendering in TASK-013) ────────────────────────
+
+class _TaskList extends StatelessWidget {
+  const _TaskList({required this.tasks});
+
+  final List<Task> tasks;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      itemCount: tasks.length,
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+      itemBuilder: (_, i) => _TaskTile(task: tasks[i]),
+    );
+  }
+}
+
+class _TaskTile extends ConsumerWidget {
+  const _TaskTile({required this.task});
+
+  final Task task;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () =>
+                ref.read(taskActionsProvider.notifier).toggleDone(task),
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: task.done ? AppColors.golden : Colors.transparent,
+                border: Border.all(
+                  color: task.done ? AppColors.golden : AppColors.border,
+                  width: 1.5,
+                ),
+              ),
+              child: task.done
+                  ? const Icon(
+                      Icons.check,
+                      size: 14,
+                      color: AppColors.background,
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              task.title,
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 14,
+                color: task.done
+                    ? AppColors.textMuted
+                    : AppColors.textPrimary,
+                decoration:
+                    task.done ? TextDecoration.lineThrough : null,
+                decorationColor: AppColors.textMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -247,6 +371,8 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
+// ─── Quote card ───────────────────────────────────────────────────────────────
 
 class _QuoteCard extends StatelessWidget {
   const _QuoteCard();
