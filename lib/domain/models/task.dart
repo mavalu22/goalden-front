@@ -19,5 +19,6 @@ abstract class Task with _$Task {
     @Default([]) List<int> recurrenceDays,
     required DateTime createdAt,
     DateTime? completedAt,
+    @Default(0) int sortOrder,
   }) = _Task;
 }

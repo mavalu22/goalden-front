@@ -42,6 +42,28 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<void> deleteTask(String id) async => _dao.deleteTask(id);
 
+  @override
+  Stream<List<Task>> watchPendingTasksBefore(DateTime date) =>
+      _dao.watchPendingTasksBefore(date).map(
+        (entries) => entries.map(_fromEntry).toList(),
+      );
+
+  @override
+  Future<void> reorderTasks(List<Task> reorderedTasks) async {
+    final updates = [
+      for (var i = 0; i < reorderedTasks.length; i++)
+        (id: reorderedTasks[i].id, order: i),
+    ];
+    await _dao.reorderTasksBatch(updates);
+  }
+
+  @override
+  Future<void> deleteOldPendingTasks({int days = 7}) async {
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    final cutoffUtc = DateTime.utc(cutoff.year, cutoff.month, cutoff.day);
+    await _dao.deleteOldPendingTasks(cutoffUtc);
+  }
+
   // ─── Mapping ─────────────────────────────────────────────────────────────
 
   Task _fromEntry(TaskEntry e) {
@@ -58,6 +80,7 @@ class TaskRepositoryImpl implements TaskRepository {
           : [],
       createdAt: e.createdAt,
       completedAt: e.completedAt,
+      sortOrder: e.sortOrder,
     );
   }
 
@@ -75,6 +98,7 @@ class TaskRepositoryImpl implements TaskRepository {
           : Value(jsonEncode(t.recurrenceDays)),
       createdAt: Value(t.createdAt),
       completedAt: Value(t.completedAt),
+      sortOrder: Value(t.sortOrder),
     );
   }
 

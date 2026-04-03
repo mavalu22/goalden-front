@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart' show Task;
 import '../providers/today_provider.dart';
+import '../utils/task_sort.dart';
 import '../widgets/task_tile.dart';
 
 class TodayScreen extends ConsumerWidget {
@@ -240,22 +241,70 @@ class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
 
 // ─── Task list ────────────────────────────────────────────────────────────────
 
-class _TaskList extends StatelessWidget {
+class _TaskList extends ConsumerWidget {
   const _TaskList({required this.tasks});
 
   final List<Task> tasks;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final sorted = sortTasks(tasks);
-    return ListView.separated(
+    return ReorderableListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      proxyDecorator: (child, index, animation) {
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) {
+            final scale = 1.03 + animation.value * 0.02;
+            return Transform.scale(
+              scale: scale,
+              child: Material(
+                color: Colors.transparent,
+                elevation: 8 * animation.value,
+                shadowColor: AppColors.golden.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                child: child,
+              ),
+            );
+          },
+          child: child,
+        );
+      },
       itemCount: sorted.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
-      // ValueKey ensures Flutter tracks each tile by task id across rebuilds
-      itemBuilder: (_, i) => TaskTile(key: ValueKey(sorted[i].id), task: sorted[i]),
+      onReorder: (oldIndex, newIndex) {
+        if (newIndex > oldIndex) newIndex--;
+        final updated = List<Task>.from(sorted);
+        final moved = updated.removeAt(oldIndex);
+        updated.insert(newIndex, moved);
+        ref.read(taskActionsProvider.notifier).reorderTasks(updated);
+      },
+      itemBuilder: (_, i) {
+        final task = sorted[i];
+        return Padding(
+          key: ValueKey(task.id),
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: Stack(
+            children: [
+              TaskTile(task: task),
+              Positioned(
+                right: 8,
+                top: 0,
+                bottom: 0,
+                child: ReorderableDragStartListener(
+                  index: i,
+                  child: const Icon(
+                    Icons.drag_handle,
+                    color: AppColors.textMuted,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

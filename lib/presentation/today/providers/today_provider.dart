@@ -51,4 +51,8 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
   Future<void> deleteTask(String id) async {
     await ref.read(taskRepositoryProvider).deleteTask(id);
   }
+
+  Future<void> reorderTasks(List<Task> reordered) async {
+    await ref.read(taskRepositoryProvider).reorderTasks(reordered);
+  }
 }

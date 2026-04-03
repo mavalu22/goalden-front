@@ -31,6 +31,8 @@ class Tasks extends Table {
 
   DateTimeColumn get completedAt => dateTime().nullable()();
 
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
