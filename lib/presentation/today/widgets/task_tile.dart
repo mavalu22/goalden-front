@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -17,7 +18,8 @@ class TaskTile extends ConsumerWidget {
     final isCompleted = task.done;
     final isHigh = task.priority == TaskPriority.high && !isCompleted;
 
-    return Opacity(
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 250),
       opacity: isCompleted ? 0.45 : 1.0,
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -33,31 +35,39 @@ class TaskTile extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // Circle checkbox
+            // Circle checkbox with scale pop animation on toggle
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () =>
                   ref.read(taskActionsProvider.notifier).toggleDone(task),
-              child: _Checkbox(done: isCompleted),
+              child: _Checkbox(done: isCompleted, taskId: task.id),
             ),
             const SizedBox(width: AppSpacing.md),
-            // Title
+            // Title with animated strikethrough via CrossFade
             Expanded(
-              child: Text(
-                task.title,
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isCompleted
-                      ? AppColors.textMuted
-                      : AppColors.textPrimary,
-                  decoration: isCompleted ? TextDecoration.lineThrough : null,
-                  decorationColor: AppColors.textMuted,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Align(
+                  key: ValueKey(isCompleted),
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    task.title,
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isCompleted
+                          ? AppColors.textMuted
+                          : AppColors.textPrimary,
+                      decoration:
+                          isCompleted ? TextDecoration.lineThrough : null,
+                      decorationColor: AppColors.textMuted,
+                    ),
+                  ),
                 ),
               ),
             ),
-            // HIGH badge
+            // HIGH badge (only on uncompleted high priority tasks)
             if (isHigh) ...[
               const SizedBox(width: AppSpacing.sm),
               const _HighBadge(),
@@ -69,28 +79,99 @@ class TaskTile extends ConsumerWidget {
   }
 }
 
-class _Checkbox extends StatelessWidget {
-  const _Checkbox({required this.done});
+class _Checkbox extends StatefulWidget {
+  const _Checkbox({required this.done, required this.taskId});
 
   final bool done;
+  final String taskId;
+
+  @override
+  State<_Checkbox> createState() => _CheckboxState();
+}
+
+class _CheckboxState extends State<_Checkbox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+  bool _prevDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prevDone = widget.done;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 1.0).animate(_controller);
+  }
+
+  @override
+  void didUpdateWidget(_Checkbox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Play scale pop only when transitioning to done
+    if (!_prevDone && widget.done) {
+      _playPop();
+    }
+    _prevDone = widget.done;
+  }
+
+  void _playPop() {
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 0.75),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 0.75, end: 1.2),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.2, end: 1.0),
+        weight: 30,
+      ),
+    ]).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+    _controller
+      ..reset()
+      ..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: done ? AppColors.golden : Colors.transparent,
-        border: Border.all(
-          color: done ? AppColors.golden : AppColors.border,
-          width: 1.5,
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, __) => Transform.scale(
+        scale: _scale.value,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: widget.done ? AppColors.golden : Colors.transparent,
+            border: Border.all(
+              color: widget.done ? AppColors.golden : AppColors.border,
+              width: 1.5,
+            ),
+          ),
+          child: widget.done
+              ? const Icon(
+                  Icons.check,
+                  size: 13,
+                  color: AppColors.background,
+                )
+              : null,
         ),
       ),
-      child: done
-          ? const Icon(Icons.check, size: 13, color: AppColors.background)
-          : null,
     );
   }
 }
