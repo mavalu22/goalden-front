@@ -66,7 +66,7 @@ class AppButton extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.golden,
               foregroundColor: AppColors.background,
-              disabledBackgroundColor: AppColors.golden.withOpacity(0.5),
+              disabledBackgroundColor: AppColors.golden.withValues(alpha: 0.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

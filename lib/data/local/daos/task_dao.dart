@@ -76,7 +76,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
   Future<void> reorderTasksBatch(List<({String id, int order})> updates) =>
       transaction(() async {
         for (final u in updates) {
-          await (this.update(tasks)..where((t) => t.id.equals(u.id))).write(
+          await (update(tasks)..where((t) => t.id.equals(u.id))).write(
             TasksCompanion(sortOrder: Value(u.order)),
           );
         }

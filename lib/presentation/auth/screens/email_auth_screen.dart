@@ -328,7 +328,7 @@ class _DesktopView extends StatelessWidget {
             border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withValues(alpha: 0.4),
                 blurRadius: 40,
                 offset: const Offset(0, 20),
               ),

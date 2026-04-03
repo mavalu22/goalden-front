@@ -86,7 +86,7 @@ class _DesktopLoginView extends StatelessWidget {
                 border: Border.all(color: AppColors.border),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withValues(alpha: 0.4),
                     blurRadius: 40,
                     offset: const Offset(0, 20),
                   ),
@@ -356,8 +356,8 @@ class _AmbientPainter extends CustomPainter {
         center: const Alignment(0.7, 0.2),
         radius: 0.8,
         colors: [
-          const Color(0xFFD4AF37).withOpacity(0.08),
-          const Color(0xFF141414).withOpacity(0.0),
+          const Color(0xFFD4AF37).withValues(alpha: 0.08),
+          const Color(0xFF141414).withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);

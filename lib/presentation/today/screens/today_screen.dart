@@ -278,7 +278,7 @@ class _TaskList extends ConsumerWidget {
                   child: Material(
                     color: Colors.transparent,
                     elevation: 8 * animation.value,
-                    shadowColor: AppColors.golden.withOpacity(0.3),
+                    shadowColor: AppColors.golden.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                     child: child,
                   ),
@@ -449,7 +449,7 @@ class _QuoteCard extends StatelessWidget {
                 '❝',
                 style: TextStyle(
                   fontSize: 32,
-                  color: AppColors.golden.withOpacity(0.3),
+                  color: AppColors.golden.withValues(alpha: 0.3),
                   height: 1,
                 ),
               ),

@@ -40,13 +40,13 @@ class AuthRepositoryImpl implements AuthRepository {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
       // User cancelled the sign-in flow
-      throw AuthException('Sign-in cancelled');
+      throw const AuthException('Sign-in cancelled');
     }
 
     final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken;
     if (idToken == null) {
-      throw AuthException('Failed to obtain Google ID token');
+      throw const AuthException('Failed to obtain Google ID token');
     }
 
     await _supabase.auth.signInWithIdToken(
@@ -70,7 +70,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final idToken = credential.identityToken;
       if (idToken == null) {
-        throw AuthException('Failed to obtain Apple identity token');
+        throw const AuthException('Failed to obtain Apple identity token');
       }
 
       await _supabase.auth.signInWithIdToken(
