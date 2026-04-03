@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/auth_user.dart';
@@ -15,14 +16,14 @@ class AuthRepositoryImpl implements AuthRepository {
   );
 
   @override
-  Stream<AuthUser?> get authStateChanges {
+  Stream<AppUser?> get authStateChanges {
     return _supabase.auth.onAuthStateChange.map((event) {
       return _mapUser(event.session?.user);
     });
   }
 
   @override
-  AuthUser? get currentUser => _mapUser(_supabase.auth.currentUser);
+  AppUser? get currentUser => _mapUser(_supabase.auth.currentUser);
 
   @override
   Future<void> signInWithGoogle() async {
@@ -56,7 +57,35 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> signInWithApple() => throw UnimplementedError('Implemented in TASK-007');
+  Future<void> signInWithApple() async {
+    // iOS and macOS: use native Apple Sign In to obtain an identity token
+    if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final idToken = credential.identityToken;
+      if (idToken == null) {
+        throw AuthException('Failed to obtain Apple identity token');
+      }
+
+      await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+      );
+      return;
+    }
+
+    // All other platforms (Android, Linux, Windows, Web): use Supabase OAuth redirect
+    await _supabase.auth.signInWithOAuth(
+      OAuthProvider.apple,
+      redirectTo: kIsWeb ? null : 'io.supabase.goalden://login-callback',
+    );
+  }
 
   @override
   Future<void> signInWithEmail({
@@ -82,9 +111,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  AuthUser? _mapUser(User? user) {
+  AppUser? _mapUser(User? user) {
     if (user == null) return null;
-    return AuthUser(id: user.id, email: user.email);
+    return AppUser(id: user.id, email: user.email);
   }
 
   bool get _isDesktop =>

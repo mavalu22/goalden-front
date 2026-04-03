@@ -15,8 +15,8 @@ final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepositoryImpl(ref.watch(supabaseClientProvider)),
 );
 
-/// Streams the current [AuthUser], or null when signed out.
-final authUserProvider = StreamProvider<AuthUser?>(
+/// Streams the current [AppUser], or null when signed out.
+final authUserProvider = StreamProvider<AppUser?>(
   (ref) => ref.watch(authRepositoryProvider).authStateChanges,
 );
 
@@ -32,6 +32,13 @@ class AuthActionsNotifier extends AsyncNotifier<void> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref.read(authRepositoryProvider).signInWithGoogle(),
+    );
+  }
+
+  Future<void> signInWithApple() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(authRepositoryProvider).signInWithApple(),
     );
   }
 

@@ -66,6 +66,9 @@ class _DesktopLoginView extends StatelessWidget {
   void _signInWithGoogle() =>
       ref.read(authActionsProvider.notifier).signInWithGoogle();
 
+  void _signInWithApple() =>
+      ref.read(authActionsProvider.notifier).signInWithApple();
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -103,11 +106,11 @@ class _DesktopLoginView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
-                  // Apple (wired in TASK-007)
+                  // Apple
                   SocialAuthButton(
                     label: 'Continue with Apple',
                     icon: const _AppleIcon(),
-                    onPressed: isLoading ? null : () {},
+                    onPressed: isLoading ? null : _signInWithApple,
                     style: SocialAuthButtonStyle.dark,
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -190,6 +193,9 @@ class _MobileLoginView extends StatelessWidget {
   void _signInWithGoogle() =>
       ref.read(authActionsProvider.notifier).signInWithGoogle();
 
+  void _signInWithApple() =>
+      ref.read(authActionsProvider.notifier).signInWithApple();
+
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
@@ -233,11 +239,11 @@ class _MobileLoginView extends StatelessWidget {
             style: SocialAuthButtonStyle.light,
           ),
           const SizedBox(height: AppSpacing.sm),
-          // Apple (wired in TASK-007)
+          // Apple
           SocialAuthButton(
             label: 'Sign in with Apple',
             icon: const _AppleIcon(color: Colors.white),
-            onPressed: isLoading ? null : () {},
+            onPressed: isLoading ? null : _signInWithApple,
             style: SocialAuthButtonStyle.black,
           ),
           const SizedBox(height: AppSpacing.xxl),
