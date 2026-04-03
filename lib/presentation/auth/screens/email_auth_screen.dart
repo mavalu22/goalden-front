@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../providers/auth_provider.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_text_field.dart';
 
-class EmailAuthScreen extends StatefulWidget {
+class EmailAuthScreen extends ConsumerStatefulWidget {
   const EmailAuthScreen({super.key});
 
   @override
-  State<EmailAuthScreen> createState() => _EmailAuthScreenState();
+  ConsumerState<EmailAuthScreen> createState() => _EmailAuthScreenState();
 }
 
-class _EmailAuthScreenState extends State<EmailAuthScreen> {
+class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailFocus = FocusNode();
@@ -22,9 +24,6 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
 
   String? _emailError;
   String? _passwordError;
-
-  // Toggled manually for UI demo; in TASK-008 this will be driven by
-  // whether the entered email already exists in Supabase.
   bool _isSignIn = true;
 
   @override
@@ -63,29 +62,94 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     return true;
   }
 
-  void _onSubmit() {
-    final emailOk = _validateEmail(_emailController.text.trim());
-    final passwordOk = _validatePassword(_passwordController.text);
+  Future<void> _onSubmit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final emailOk = _validateEmail(email);
+    final passwordOk = _validatePassword(password);
     if (!emailOk || !passwordOk) return;
-    // Auth logic wired in TASK-008
+
+    if (_isSignIn) {
+      await ref.read(authActionsProvider.notifier).signInWithEmail(
+            email: email,
+            password: password,
+          );
+    } else {
+      await ref.read(authActionsProvider.notifier).signUpWithEmail(
+            email: email,
+            password: password,
+          );
+    }
+  }
+
+  Future<void> _onForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (!_validateEmail(email)) return;
+
+    await ref
+        .read(authActionsProvider.notifier)
+        .sendPasswordResetEmail(email);
+
+    if (!mounted) return;
+    final hasError = ref.read(authActionsProvider).hasError;
+    if (!hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  String _friendlyError(Object error) {
+    final msg = error.toString().toLowerCase();
+    if (msg.contains('invalid login credentials') ||
+        msg.contains('invalid_credentials')) {
+      return 'Wrong email or password.';
+    }
+    if (msg.contains('email not confirmed')) {
+      return 'Please confirm your email before signing in.';
+    }
+    if (msg.contains('user already registered')) {
+      return 'An account with this email already exists.';
+    }
+    if (msg.contains('network')) return 'Check your internet connection.';
+    return 'Something went wrong. Please try again.';
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<void>>(authActionsProvider, (_, next) {
+      next.whenOrNull(
+        error: (error, _) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_friendlyError(error)),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+      );
+    });
+
+    final isLoading = ref.watch(authActionsProvider).isLoading;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth >= AppConstants.mobileBreakpoint) {
-            return _DesktopView(child: _buildForm());
+            return _DesktopView(child: _buildForm(isLoading));
           }
-          return _MobileView(child: _buildForm());
+          return _MobileView(child: _buildForm(isLoading));
         },
       ),
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isLoading) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +185,6 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           },
         ),
         const SizedBox(height: AppSpacing.xs),
-        // Password hint
         if (!_isSignIn)
           const Padding(
             padding: EdgeInsets.only(left: AppSpacing.xs),
@@ -137,23 +200,28 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         const SizedBox(height: AppSpacing.xxl),
         // Primary action button
         AppButton(
-          label: _isSignIn ? 'Sign in' : 'Create account',
-          onPressed: _onSubmit,
+          label: isLoading ? '' : (_isSignIn ? 'Sign in' : 'Create account'),
+          onPressed: isLoading ? null : _onSubmit,
+          isLoading: isLoading,
         ),
         // Forgot password (sign-in state only)
         if (_isSignIn) ...[
           const SizedBox(height: AppSpacing.lg),
           Center(
             child: GestureDetector(
-              onTap: () {},
-              child: const Text(
+              onTap: isLoading ? null : _onForgotPassword,
+              child: Text(
                 'Forgot password?',
                 style: TextStyle(
                   fontFamily: AppTypography.bodyFont,
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: isLoading
+                      ? AppColors.textMuted
+                      : AppColors.textSecondary,
                   decoration: TextDecoration.underline,
-                  decorationColor: AppColors.textSecondary,
+                  decorationColor: isLoading
+                      ? AppColors.textMuted
+                      : AppColors.textSecondary,
                 ),
               ),
             ),
@@ -163,7 +231,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         // Mode toggle
         Center(
           child: GestureDetector(
-            onTap: () => setState(() => _isSignIn = !_isSignIn),
+            onTap: isLoading ? null : () => setState(() => _isSignIn = !_isSignIn),
             child: RichText(
               text: TextSpan(
                 style: const TextStyle(
@@ -173,12 +241,14 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                 ),
                 children: [
                   TextSpan(
-                    text: _isSignIn ? "Don't have an account? " : 'Already have an account? ',
+                    text: _isSignIn
+                        ? "Don't have an account? "
+                        : 'Already have an account? ',
                   ),
                   TextSpan(
                     text: _isSignIn ? 'Create one' : 'Sign in',
-                    style: const TextStyle(
-                      color: AppColors.golden,
+                    style: TextStyle(
+                      color: isLoading ? AppColors.textMuted : AppColors.golden,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -212,10 +282,8 @@ class _MobileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Back button
           _BackButton(),
           const SizedBox(height: AppSpacing.xxxl),
-          // Title
           const Text(
             'Welcome back',
             style: TextStyle(

@@ -91,17 +91,28 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> signInWithEmail({
     required String email,
     required String password,
-  }) => throw UnimplementedError('Implemented in TASK-008');
+  }) async {
+    await _supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+  }
 
   @override
   Future<void> signUpWithEmail({
     required String email,
     required String password,
-  }) => throw UnimplementedError('Implemented in TASK-008');
+  }) async {
+    await _supabase.auth.signUp(
+      email: email,
+      password: password,
+    );
+  }
 
   @override
-  Future<void> sendPasswordResetEmail(String email) =>
-      throw UnimplementedError('Implemented in TASK-008');
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _supabase.auth.resetPasswordForEmail(email);
+  }
 
   @override
   Future<void> signOut() async {

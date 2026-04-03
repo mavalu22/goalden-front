@@ -42,6 +42,39 @@ class AuthActionsNotifier extends AsyncNotifier<void> {
     );
   }
 
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(authRepositoryProvider).signInWithEmail(
+            email: email,
+            password: password,
+          ),
+    );
+  }
+
+  Future<void> signUpWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(authRepositoryProvider).signUpWithEmail(
+            email: email,
+            password: password,
+          ),
+    );
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(authRepositoryProvider).sendPasswordResetEmail(email),
+    );
+  }
+
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
