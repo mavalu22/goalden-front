@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -13,9 +16,54 @@ void main() async {
     anonKey: Env.supabaseAnonKey,
   );
 
+  // On Linux, register the custom URL scheme so OAuth callbacks reach the app.
+  if (Platform.isLinux) {
+    await _registerLinuxUrlScheme();
+  }
+
+  // Listen for incoming deep links (OAuth callbacks on desktop).
+  final appLinks = AppLinks();
+  appLinks.uriLinkStream.listen((uri) {
+    Supabase.instance.client.auth.getSessionFromUrl(uri);
+  });
+
   runApp(
     const ProviderScope(
       child: GoaldenApp(),
     ),
   );
+}
+
+/// Creates a `.desktop` file and registers `io.supabase.goalden://` with the
+/// XDG MIME system so the OS routes OAuth callbacks back to the app.
+Future<void> _registerLinuxUrlScheme() async {
+  try {
+    final execPath = Platform.resolvedExecutable;
+    final home = Platform.environment['HOME'] ?? '';
+    final appsDir = Directory('$home/.local/share/applications');
+    await appsDir.create(recursive: true);
+
+    final desktopFile = File('${appsDir.path}/goalden.desktop');
+    await desktopFile.writeAsString(
+      '[Desktop Entry]\n'
+      'Name=Goalden\n'
+      'Exec=$execPath %u\n'
+      'Type=Application\n'
+      'MimeType=x-scheme-handler/io.supabase.goalden;\n'
+      'NoDisplay=true\n',
+    );
+
+    await Process.run('xdg-mime', [
+      'default',
+      'goalden.desktop',
+      'x-scheme-handler/io.supabase.goalden',
+    ]);
+    await Process.run(
+      'update-desktop-database',
+      [appsDir.path],
+    );
+  } catch (e) {
+    // Non-fatal — app works, but Google OAuth deep link may not return.
+    debugPrint('URL scheme registration failed: $e');
+  }
 }
