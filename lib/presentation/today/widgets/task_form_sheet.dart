@@ -137,6 +137,83 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   bool _isSubmitting = false;
   bool get _isEditing => widget.task != null;
 
+  bool get _isDirty {
+    if (_isEditing) {
+      final t = widget.task!;
+      return _titleController.text.trim() != t.title ||
+          _noteController.text.trim() != (t.note ?? '') ||
+          _selectedDate != t.date ||
+          _priority != t.priority ||
+          _recurrence != t.recurrence ||
+          !_setEquals(_recurrenceDays, Set<int>.from(t.recurrenceDays));
+    }
+    // Create mode: dirty if the user typed anything in the title
+    return _titleController.text.trim().isNotEmpty;
+  }
+
+  bool _setEquals(Set<int> a, Set<int> b) =>
+      a.length == b.length && a.containsAll(b);
+
+  Future<void> _tryClose() async {
+    if (!_isDirty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        title: const Text(
+          'Discard changes?',
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: const Text(
+          'Your changes will not be saved.',
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Keep editing',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Discard',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -236,7 +313,12 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _tryClose();
+      },
+      child: ListView(
       controller: widget.scrollController,
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
@@ -245,27 +327,47 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xxl,
       ),
       children: [
-        // Handle
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+        // Handle (mobile only)
+        if (widget.scrollController != null)
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        ),
-        // Header
-        Text(
-          _isEditing ? 'Edit Task' : 'New Task',
-          style: const TextStyle(
-            fontFamily: AppTypography.displayFont,
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+        // Header row: title + close button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              _isEditing ? 'Edit Task' : 'New Task',
+              style: const TextStyle(
+                fontFamily: AppTypography.displayFont,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Pressable(
+              onTap: _tryClose,
+              borderRadius: BorderRadius.circular(20),
+              hoverColor: AppColors.textMuted.withValues(alpha: 0.1),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.xxl),
 
@@ -411,7 +513,8 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
           ),
         ),
       ],
-    );
+      ),  // ListView
+    );  // PopScope
   }
 
   Widget _inputContainer({required Widget child}) {
