@@ -104,6 +104,8 @@ class TaskRepositoryImpl implements TaskRepository {
       completedAt: e.completedAt,
       sortOrder: e.sortOrder,
       sourceTaskId: e.sourceTaskId,
+      startTimeMinutes: e.startTimeMinutes,
+      endTimeMinutes: e.endTimeMinutes,
     );
   }
 
@@ -123,6 +125,8 @@ class TaskRepositoryImpl implements TaskRepository {
       completedAt: Value(t.completedAt),
       sortOrder: Value(t.sortOrder),
       sourceTaskId: Value(t.sourceTaskId),
+      startTimeMinutes: Value(t.startTimeMinutes),
+      endTimeMinutes: Value(t.endTimeMinutes),
     );
   }
 
