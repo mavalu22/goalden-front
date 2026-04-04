@@ -138,9 +138,12 @@ class _BottomTabBar extends StatelessWidget {
               final isActive = i == selectedIndex;
 
               return Expanded(
-                child: GestureDetector(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
                   onTap: () => onDestinationSelected(i),
-                  behavior: HitTestBehavior.opaque,
+                  mouseCursor: SystemMouseCursors.click,
+                  hoverColor: AppColors.golden.withValues(alpha: 0.06),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -161,6 +164,7 @@ class _BottomTabBar extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
                   ),
                 ),
               );

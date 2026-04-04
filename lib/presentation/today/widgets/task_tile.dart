@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../providers/today_provider.dart';
 import 'postpone_sheet.dart';
+import '../../shared/widgets/pressable.dart';
 import 'task_form_sheet.dart';
 
 class TaskTile extends ConsumerStatefulWidget {
@@ -33,8 +34,10 @@ class _TaskTileState extends ConsumerState<TaskTile>
   late TextEditingController _noteController;
 
   bool _rowHovered = false;
+  bool _rowPressed = false;
   bool _noteHovered = false;
   bool _priorityHovered = false;
+  bool _priorityPressed = false;
 
   @override
   void initState() {
@@ -205,7 +208,14 @@ class _TaskTileState extends ConsumerState<TaskTile>
           cursor: SystemMouseCursors.click,
           child: GestureDetector(
           onTap: _toggleExpanded,
+          onTapDown: (_) => setState(() => _rowPressed = true),
+          onTapUp: (_) => setState(() => _rowPressed = false),
+          onTapCancel: () => setState(() => _rowPressed = false),
           behavior: HitTestBehavior.opaque,
+          child: AnimatedScale(
+          scale: _rowPressed ? 0.98 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
           child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
@@ -235,13 +245,11 @@ class _TaskTileState extends ConsumerState<TaskTile>
                 child: Row(
                   children: [
                     // Checkbox — stops tap from propagating to expand
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        ref
-                            .read(taskActionsProvider.notifier)
-                            .toggleDone(widget.task);
-                      },
+                    Pressable(
+                      onTap: () => ref
+                          .read(taskActionsProvider.notifier)
+                          .toggleDone(widget.task),
+                      scaleFactor: 0.88,
                       child: _buildCheckbox(),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -382,11 +390,14 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                     ),
                                     const Spacer(),
                                     // Edit button
-                                    GestureDetector(
+                                    Pressable(
                                       onTap: () => showTaskEditForm(
                                         context,
                                         task: widget.task,
                                       ),
+                                      borderRadius: BorderRadius.circular(4),
+                                      hoverColor: AppColors.golden
+                                          .withValues(alpha: 0.1),
                                       child: const Padding(
                                         padding: EdgeInsets.symmetric(
                                           horizontal: AppSpacing.xs,
@@ -409,6 +420,17 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                       cursor: SystemMouseCursors.click,
                                       child: GestureDetector(
                                       onTap: _togglePriority,
+                                      onTapDown: (_) => setState(
+                                          () => _priorityPressed = true),
+                                      onTapUp: (_) => setState(
+                                          () => _priorityPressed = false),
+                                      onTapCancel: () => setState(
+                                          () => _priorityPressed = false),
+                                      child: AnimatedScale(
+                                      scale: _priorityPressed ? 0.94 : 1.0,
+                                      duration:
+                                          const Duration(milliseconds: 100),
+                                      curve: Curves.easeOut,
                                       child: AnimatedContainer(
                                         duration:
                                             const Duration(milliseconds: 150),
@@ -464,6 +486,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                           ],
                                         ),
                                       ),
+                                      ),   // AnimatedScale
                                       ),
                                     ),
                                   ],
@@ -478,6 +501,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
             ],
           ),
         ),
+        ),   // AnimatedScale
         ),
       ),
       ),

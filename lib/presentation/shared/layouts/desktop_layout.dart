@@ -224,6 +224,8 @@ class _SidebarNavItem extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
+          mouseCursor: SystemMouseCursors.click,
+          hoverColor: AppColors.goldenDim.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(10),
           child: Container(
             height: 40,

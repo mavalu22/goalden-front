@@ -10,6 +10,7 @@ import '../../../domain/models/auth_user.dart';
 import '../../../providers/auth_provider.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_text_field.dart';
+import '../../shared/widgets/pressable.dart';
 
 class EmailAuthScreen extends ConsumerStatefulWidget {
   const EmailAuthScreen({super.key});
@@ -275,7 +276,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
         if (_isSignIn) ...[
           const SizedBox(height: AppSpacing.lg),
           Center(
-            child: GestureDetector(
+            child: Pressable(
               onTap: isLoading ? null : _onForgotPassword,
               child: Text(
                 'Forgot password?',
@@ -297,7 +298,7 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
         const SizedBox(height: AppSpacing.xxl),
         // Mode toggle
         Center(
-          child: GestureDetector(
+          child: Pressable(
             onTap: isLoading ? null : () => setState(() => _isSignIn = !_isSignIn),
             child: RichText(
               text: TextSpan(
@@ -438,7 +439,7 @@ class _DesktopView extends StatelessWidget {
 class _BackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: () => Navigator.of(context).maybePop(),
       child: const Row(
         mainAxisSize: MainAxisSize.min,

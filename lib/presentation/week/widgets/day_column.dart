@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
+import '../../shared/widgets/pressable.dart';
 import '../../today/providers/today_provider.dart';
 import '../screens/day_detail_screen.dart';
 
@@ -97,7 +98,7 @@ class _DayColumnState extends ConsumerState<DayColumn> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header — tapping navigates to the day detail screen
-          GestureDetector(
+          Pressable(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => DayDetailScreen(date: widget.date),
@@ -242,8 +243,10 @@ class _DayColumnState extends ConsumerState<DayColumn> {
                         setState(() => _showQuickAdd = false);
                       },
                     )
-                  : GestureDetector(
+                  : Pressable(
                       onTap: _showAdd,
+                      borderRadius: BorderRadius.circular(8),
+                      hoverColor: AppColors.golden.withValues(alpha: 0.08),
                       child: Container(
                         width: double.infinity,
                         height: 32,
@@ -325,11 +328,12 @@ class _ColumnTaskRow extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          GestureDetector(
+          Pressable(
             onTap: isPast
                 ? null
                 : () =>
                     ref.read(taskActionsProvider.notifier).toggleDone(task),
+            scaleFactor: 0.88,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 16,
@@ -461,8 +465,10 @@ class _QuickAddInput extends StatelessWidget {
               onSubmitted: (_) => onSubmit(),
             ),
           ),
-          GestureDetector(
+          Pressable(
             onTap: onCancel,
+            borderRadius: BorderRadius.circular(4),
+            hoverColor: AppColors.textMuted.withValues(alpha: 0.1),
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.xs),
               child: Icon(Icons.close, size: 14, color: AppColors.textMuted),

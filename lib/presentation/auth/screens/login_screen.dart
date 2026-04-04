@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/widgets/pressable.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -156,7 +158,7 @@ class _DesktopLoginView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
-                  GestureDetector(
+                  Pressable(
                     onTap: () {},
                     child: RichText(
                       text: const TextSpan(
@@ -259,7 +261,7 @@ class _MobileLoginView extends StatelessWidget {
           const SizedBox(height: AppSpacing.xxl),
           Center(
             child: Builder(
-              builder: (ctx) => GestureDetector(
+              builder: (ctx) => Pressable(
                 onTap: isLoading
                     ? null
                     : () => Navigator.of(ctx).push(

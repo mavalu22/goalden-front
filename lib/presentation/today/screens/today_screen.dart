@@ -11,6 +11,7 @@ import '../providers/today_provider.dart';
 import '../utils/daily_quote.dart';
 import '../utils/task_sort.dart';
 import '../widgets/pending_section.dart';
+import '../../shared/widgets/pressable.dart';
 import '../widgets/task_form_sheet.dart';
 import '../widgets/task_tile.dart';
 
@@ -237,8 +238,10 @@ class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
         ),
         const SizedBox(width: AppSpacing.sm),
         // Full form button
-        GestureDetector(
+        Pressable(
           onTap: () => showTaskForm(context),
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: AppColors.golden.withValues(alpha: 0.08),
           child: Container(
             width: 48,
             height: 48,
@@ -252,8 +255,10 @@ class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        GestureDetector(
+        Pressable(
           onTap: _submit,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: Colors.white.withValues(alpha: 0.1),
           child: Container(
             width: 48,
             height: 48,

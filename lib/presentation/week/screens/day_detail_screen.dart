@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
+import '../../shared/widgets/pressable.dart';
 import '../../today/providers/today_provider.dart';
 import '../../today/utils/task_sort.dart';
 import '../../today/widgets/task_tile.dart';
@@ -255,8 +256,10 @@ class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        GestureDetector(
+        Pressable(
           onTap: _submit,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: Colors.white.withValues(alpha: 0.1),
           child: Container(
             width: 48,
             height: 48,

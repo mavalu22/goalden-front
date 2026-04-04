@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
+import '../../shared/widgets/pressable.dart';
 import '../providers/today_provider.dart';
 
 const _messages = [
@@ -107,9 +108,10 @@ class _PendingTaskRow extends ConsumerWidget {
       child: Row(
         children: [
           // Golden-bordered checkbox
-          GestureDetector(
+          Pressable(
             onTap: () =>
                 ref.read(taskActionsProvider.notifier).toggleDone(task),
+            scaleFactor: 0.88,
             child: Container(
               width: 20,
               height: 20,
@@ -139,9 +141,11 @@ class _PendingTaskRow extends ConsumerWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           // "Today" pill button
-          GestureDetector(
+          Pressable(
             onTap: () =>
                 ref.read(taskActionsProvider.notifier).rescheduleToToday(task),
+            borderRadius: BorderRadius.circular(20),
+            hoverColor: AppColors.golden.withValues(alpha: 0.12),
             child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.sm,
@@ -165,13 +169,18 @@ class _PendingTaskRow extends ConsumerWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           // Remove button
-          GestureDetector(
+          Pressable(
             onTap: () =>
                 ref.read(taskActionsProvider.notifier).deleteTask(task.id),
-            child: const Icon(
-              Icons.close,
-              size: 16,
-              color: AppColors.textMuted,
+            borderRadius: BorderRadius.circular(4),
+            hoverColor: AppColors.error.withValues(alpha: 0.1),
+            child: const Padding(
+              padding: EdgeInsets.all(2),
+              child: Icon(
+                Icons.close,
+                size: 16,
+                color: AppColors.textMuted,
+              ),
             ),
           ),
         ],

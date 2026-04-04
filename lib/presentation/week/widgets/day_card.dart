@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
+import '../../shared/widgets/pressable.dart';
 import '../../today/providers/today_provider.dart';
 import '../screens/day_detail_screen.dart';
 
@@ -146,7 +147,7 @@ class _DayCardState extends ConsumerState<DayCard> {
                   Row(
                     children: [
                       Expanded(
-                        child: GestureDetector(
+                        child: Pressable(
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) =>
@@ -171,8 +172,10 @@ class _DayCardState extends ConsumerState<DayCard> {
                         const SizedBox(width: AppSpacing.sm),
                       ],
                       if (!_isPast)
-                        GestureDetector(
+                        Pressable(
                           onTap: _showAdd,
+                          borderRadius: BorderRadius.circular(8),
+                          hoverColor: AppColors.golden.withValues(alpha: 0.08),
                           child: Container(
                             width: 28,
                             height: 28,
@@ -376,10 +379,11 @@ class _TaskRow extends ConsumerWidget {
       child: Row(
         children: [
           // Checkbox
-          GestureDetector(
+          Pressable(
             onTap: isPast
                 ? null
                 : () => ref.read(taskActionsProvider.notifier).toggleDone(task),
+            scaleFactor: 0.88,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 18,
@@ -512,8 +516,10 @@ class _QuickAddInput extends StatelessWidget {
               onSubmitted: (_) => onSubmit(),
             ),
           ),
-          GestureDetector(
+          Pressable(
             onTap: onCancel,
+            borderRadius: BorderRadius.circular(4),
+            hoverColor: AppColors.textMuted.withValues(alpha: 0.1),
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               child: Icon(Icons.close, size: 16, color: AppColors.textMuted),

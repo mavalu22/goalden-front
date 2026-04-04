@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
+import '../../shared/widgets/pressable.dart';
 import '../providers/today_provider.dart';
 
 /// Opens the task creation form. Pass [defaultDate] to pre-fill the date.
@@ -285,8 +286,10 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         // Date field
         const _FieldLabel('Date'),
         const SizedBox(height: AppSpacing.xs),
-        GestureDetector(
+        Pressable(
           onTap: _pickDate,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: AppColors.golden.withValues(alpha: 0.06),
           child: _inputContainer(
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -374,8 +377,10 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         const SizedBox(height: AppSpacing.xxxl),
 
         // Save/Create button
-        GestureDetector(
+        Pressable(
           onTap: _isSubmitting ? null : _submit,
+          borderRadius: BorderRadius.circular(14),
+          hoverColor: Colors.white.withValues(alpha: 0.1),
           child: Container(
             height: 52,
             decoration: BoxDecoration(
@@ -480,8 +485,12 @@ class _PriorityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      hoverColor: isHigh
+          ? AppColors.golden.withValues(alpha: 0.08)
+          : AppColors.textSecondary.withValues(alpha: 0.08),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(
@@ -583,8 +592,10 @@ class _RecurrenceChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      hoverColor: AppColors.golden.withValues(alpha: 0.08),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(
@@ -632,8 +643,9 @@ class _DayOfWeekPicker extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         for (int i = 0; i < 7; i++)
-          GestureDetector(
+          Pressable(
             onTap: () => onToggle(i + 1),
+            scaleFactor: 0.9,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               width: 38,
