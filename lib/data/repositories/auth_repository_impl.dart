@@ -115,6 +115,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> updateDisplayName(String name) async {
+    await _supabase.auth.updateUser(
+      UserAttributes(data: {'display_name': name.trim()}),
+    );
+  }
+
+  @override
   Future<void> signOut() async {
     // Best-effort: only attempt Google sign-out on platforms where the plugin
     // is registered. On Linux (and for email-auth users), this would throw a
@@ -133,7 +140,21 @@ class AuthRepositoryImpl implements AuthRepository {
 
   AppUser? _mapUser(User? user) {
     if (user == null) return null;
-    return AppUser(id: user.id, email: user.email);
+    final provider = switch (user.appMetadata['provider'] as String?) {
+      'google' => AuthProvider.google,
+      'apple' => AuthProvider.apple,
+      'email' => AuthProvider.email,
+      _ => AuthProvider.unknown,
+    };
+    final displayName =
+        user.userMetadata?['display_name'] as String? ??
+        user.userMetadata?['full_name'] as String?;
+    return AppUser(
+      id: user.id,
+      email: user.email,
+      displayName: displayName,
+      authProvider: provider,
+    );
   }
 
   bool get _isDesktop =>
