@@ -34,6 +34,7 @@ class _WeekNavBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final label = ref.watch(weekLabelProvider);
+    final isCurrent = ref.watch(weekOffsetProvider) == 0;
     return Row(
       children: [
         IconButton(
@@ -43,14 +44,28 @@ class _WeekNavBar extends ConsumerWidget {
         ),
         Expanded(
           child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (isCurrent)
+                  const Text(
+                    'This week',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
