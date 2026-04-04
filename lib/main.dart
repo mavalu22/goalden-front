@@ -21,8 +21,18 @@ void main() async {
     await _registerLinuxUrlScheme();
   }
 
-  // Listen for incoming deep links (OAuth callbacks on desktop).
+  // Handle OAuth callbacks delivered as deep links.
   final appLinks = AppLinks();
+
+  // Check if this instance was launched by an OAuth callback URI (fallback for
+  // platforms where single-instance routing isn't fully operational).
+  final initialUri = await appLinks.getInitialLink();
+  if (initialUri != null) {
+    await Supabase.instance.client.auth.getSessionFromUrl(initialUri);
+  }
+
+  // Stream for subsequent deep links while the app is already running
+  // (primary instance receives the URI forwarded from the secondary via D-Bus).
   appLinks.uriLinkStream.listen((uri) {
     Supabase.instance.client.auth.getSessionFromUrl(uri);
   });
