@@ -420,48 +420,52 @@ class _QuoteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Expanded(
-                child: Text(
-                  '"The secret of your future is hidden in your daily routine."',
+          Text(
+            '❝',
+            style: TextStyle(
+              fontSize: 18,
+              color: AppColors.golden.withValues(alpha: 0.35),
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'The secret of your future is hidden in your daily routine.',
                   style: TextStyle(
                     fontFamily: AppTypography.displayFont,
-                    fontSize: 15,
+                    fontSize: 13,
                     fontStyle: FontStyle.italic,
                     color: AppColors.textPrimary,
-                    height: 1.5,
+                    height: 1.4,
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                '❝',
-                style: TextStyle(
-                  fontSize: 32,
-                  color: AppColors.golden.withValues(alpha: 0.3),
-                  height: 1,
+                SizedBox(height: 2),
+                Text(
+                  '— Mike Murdock',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'Mike Murdock',
-            style: TextStyle(
-              fontFamily: AppTypography.bodyFont,
-              fontSize: 12,
-              color: AppColors.textMuted,
+              ],
             ),
           ),
         ],
