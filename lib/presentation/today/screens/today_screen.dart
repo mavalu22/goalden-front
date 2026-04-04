@@ -10,6 +10,7 @@ import '../../../domain/models/task.dart' show Task;
 import '../providers/today_provider.dart';
 import '../utils/task_sort.dart';
 import '../widgets/pending_section.dart';
+import '../widgets/task_form_sheet.dart';
 import '../widgets/task_tile.dart';
 
 class TodayScreen extends ConsumerWidget {
@@ -231,6 +232,22 @@ class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
             ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        // Full form button
+        GestureDetector(
+          onTap: () => showTaskForm(context),
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Icon(Icons.tune,
+                color: AppColors.textSecondary, size: 20),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
