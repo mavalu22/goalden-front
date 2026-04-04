@@ -57,19 +57,22 @@ class _TaskFormSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (_, controller) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: _TaskFormContent(
-          task: task,
-          defaultDate: defaultDate,
-          scrollController: controller,
+    return Material(
+      color: Colors.transparent,
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: _TaskFormContent(
+            task: task,
+            defaultDate: defaultDate,
+            scrollController: controller,
+          ),
         ),
       ),
     );
@@ -86,18 +89,21 @@ class _TaskFormDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 480,
-        margin: const EdgeInsets.all(AppSpacing.xxl),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: _TaskFormContent(task: task, defaultDate: defaultDate),
+    return Material(
+      color: Colors.transparent,
+      child: Center(
+        child: Container(
+          width: 480,
+          margin: const EdgeInsets.all(AppSpacing.xxl),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: _TaskFormContent(task: task, defaultDate: defaultDate),
+          ),
         ),
       ),
     );
