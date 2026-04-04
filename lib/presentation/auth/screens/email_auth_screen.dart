@@ -79,7 +79,58 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
             email: email,
             password: password,
           );
+
+      // If sign-up succeeded but no session yet, email confirmation is required.
+      if (!mounted) return;
+      final hasError = ref.read(authActionsProvider).hasError;
+      final isSignedIn = ref.read(authUserProvider).valueOrNull != null;
+      if (!hasError && !isSignedIn) {
+        _showEmailConfirmationDialog(email);
+      }
     }
+  }
+
+  void _showEmailConfirmationDialog(String email) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        title: const Text(
+          'Check your email',
+          style: TextStyle(
+            fontFamily: AppTypography.displayFont,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'We sent a confirmation link to $email.\nOpen it to activate your account.',
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Got it',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                color: AppColors.golden,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _onForgotPassword() async {
