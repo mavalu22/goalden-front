@@ -317,7 +317,7 @@ class _TaskList extends ConsumerWidget {
             return Padding(
               key: ValueKey(task.id),
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: TaskTile(task: task, dragIndex: i),
+              child: TaskTile(task: task, index: i),
             );
           },
         ),
