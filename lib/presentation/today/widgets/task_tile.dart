@@ -107,7 +107,8 @@ class _TaskTileState extends ConsumerState<TaskTile>
     final expandedId = ref.watch(expandedTaskIdProvider);
     final isExpanded = expandedId == widget.task.id;
 
-    return Slidable(
+    return ClipRect(
+      child: Slidable(
       key: ValueKey(widget.task.id),
       // Swipe right → remove action
       startActionPane: ActionPane(
@@ -127,6 +128,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
               left: Radius.circular(12),
             ),
             child: const Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.delete_outline, size: 18, color: Colors.white),
@@ -170,6 +172,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
               right: Radius.circular(12),
             ),
             child: const Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.arrow_forward, size: 18, color: AppColors.golden),
@@ -419,6 +422,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
             ],
           ),
         ),
+      ),
       ),
       ),
     );
