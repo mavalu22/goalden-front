@@ -26,9 +26,15 @@ void main() async {
 
   // Check if this instance was launched by an OAuth callback URI (fallback for
   // platforms where single-instance routing isn't fully operational).
+  // Wrapped in try-catch because getInitialLink() may return a stale URI from
+  // a previous session whose flow state has already expired in Supabase.
   final initialUri = await appLinks.getInitialLink();
   if (initialUri != null) {
-    await Supabase.instance.client.auth.getSessionFromUrl(initialUri);
+    try {
+      await Supabase.instance.client.auth.getSessionFromUrl(initialUri);
+    } catch (_) {
+      // Stale or already-consumed flow state — safe to ignore.
+    }
   }
 
   // Stream for subsequent deep links while the app is already running
