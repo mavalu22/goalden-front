@@ -7,29 +7,32 @@ import '../domain/repositories/task_repository.dart';
 import 'auth_provider.dart';
 
 /// Derives a stable, file-safe identifier from the signed-in user.
-/// Returns `'anonymous'` when no user is authenticated (app startup /
-/// logged-out state — tasks are never written in that state).
+/// Returns `'anonymous'` when no user is authenticated — tasks are never
+/// written in that state (the app shows the login screen instead).
 final _currentUserIdProvider = Provider<String>((ref) {
   return ref.watch(authUserProvider).valueOrNull?.id ?? 'anonymous';
 });
 
-/// Opens a per-user SQLite database keyed on [_currentUserIdProvider].
-/// When the authenticated user changes (login, logout, or account switch)
-/// Riverpod automatically closes the old database and opens a fresh one
-/// for the new user — giving each account a fully isolated local store.
-final databaseProvider = Provider<AppDatabase>((ref) {
+/// Asynchronously opens the per-user SQLite database in the app's private
+/// support directory. Rebuilds automatically when the authenticated user
+/// changes, closing the old database (via [ref.onDispose]) and opening a
+/// fresh one for the new user.
+final databaseProvider = FutureProvider<AppDatabase>((ref) async {
   final userId = ref.watch(_currentUserIdProvider);
-  final db = AppDatabase(userId);
+  final executor = await openDatabase(userId);
+  final db = AppDatabase(executor);
   ref.onDispose(db.close);
   return db;
 });
 
-/// Provides the [TaskDao] backed by the per-user database.
-final taskDaoProvider = Provider<TaskDao>(
-  (ref) => ref.watch(databaseProvider).taskDao,
-);
+/// Provides the [TaskDao] — waits for the database to be ready.
+final taskDaoProvider = FutureProvider<TaskDao>((ref) async {
+  final db = await ref.watch(databaseProvider.future);
+  return db.taskDao;
+});
 
 /// Provides the [TaskRepository] implementation.
-final taskRepositoryProvider = Provider<TaskRepository>(
-  (ref) => TaskRepositoryImpl(ref.watch(taskDaoProvider)),
-);
+final taskRepositoryProvider = FutureProvider<TaskRepository>((ref) async {
+  final dao = await ref.watch(taskDaoProvider.future);
+  return TaskRepositoryImpl(dao);
+});

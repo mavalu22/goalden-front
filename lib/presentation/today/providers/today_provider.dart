@@ -10,18 +10,19 @@ const _uuid = Uuid();
 final expandedTaskIdProvider = StateProvider<String?>((ref) => null);
 
 /// Reactive stream of tasks for today.
-final todayTasksProvider = StreamProvider<List<Task>>((ref) {
+final todayTasksProvider = StreamProvider<List<Task>>((ref) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
   final now = DateTime.now();
-  return ref.watch(taskRepositoryProvider).watchTasksForDate(now);
+  yield* repo.watchTasksForDate(now);
 });
 
 /// Reactive stream of uncompleted tasks from previous days.
 /// Also triggers cleanup of tasks older than 7 days on initialization.
-final pendingTasksProvider = StreamProvider<List<Task>>((ref) {
-  // One-shot cleanup on provider init
-  ref.read(taskRepositoryProvider).deleteOldPendingTasks(days: 7);
+final pendingTasksProvider = StreamProvider<List<Task>>((ref) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  repo.deleteOldPendingTasks(days: 7);
   final now = DateTime.now();
-  return ref.watch(taskRepositoryProvider).watchPendingTasksBefore(now);
+  yield* repo.watchPendingTasksBefore(now);
 });
 
 /// Handles task mutations (create, update, delete).
@@ -41,7 +42,8 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
       date: date ?? DateTime.utc(now.year, now.month, now.day),
       createdAt: now,
     );
-    await ref.read(taskRepositoryProvider).createTask(task);
+    final repo = await ref.read(taskRepositoryProvider.future);
+    await repo.createTask(task);
   }
 
   Future<void> toggleDone(Task task) async {
@@ -50,26 +52,29 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
       done: !task.done,
       completedAt: !task.done ? now : null,
     );
-    await ref.read(taskRepositoryProvider).updateTask(updated);
+    final repo = await ref.read(taskRepositoryProvider.future);
+    await repo.updateTask(updated);
   }
 
   Future<void> updateTask(Task task) async {
-    await ref.read(taskRepositoryProvider).updateTask(task);
+    final repo = await ref.read(taskRepositoryProvider.future);
+    await repo.updateTask(task);
   }
 
   Future<void> deleteTask(String id) async {
-    await ref.read(taskRepositoryProvider).deleteTask(id);
+    final repo = await ref.read(taskRepositoryProvider.future);
+    await repo.deleteTask(id);
   }
 
   Future<void> reorderTasks(List<Task> reordered) async {
-    await ref.read(taskRepositoryProvider).reorderTasks(reordered);
+    final repo = await ref.read(taskRepositoryProvider.future);
+    await repo.reorderTasks(reordered);
   }
 
   Future<void> rescheduleToToday(Task task) async {
     final now = DateTime.now();
     final today = DateTime.utc(now.year, now.month, now.day);
-    await ref
-        .read(taskRepositoryProvider)
-        .updateTask(task.copyWith(date: today));
+    final repo = await ref.read(taskRepositoryProvider.future);
+    await repo.updateTask(task.copyWith(date: today));
   }
 }
