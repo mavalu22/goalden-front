@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
@@ -81,11 +82,14 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
             password: password,
           );
 
-      // If sign-up succeeded but no session yet, email confirmation is required.
+      // Check synchronously via the Supabase client — the Riverpod stream
+      // may not have propagated yet, so reading it would give a stale value.
       if (!mounted) return;
       final hasError = ref.read(authActionsProvider).hasError;
-      final isSignedIn = ref.read(authUserProvider).valueOrNull != null;
+      final isSignedIn =
+          Supabase.instance.client.auth.currentUser != null;
       if (!hasError && !isSignedIn) {
+        // Email confirmation is required — tell the user to check their inbox.
         _showEmailConfirmationDialog(email);
       }
     }
