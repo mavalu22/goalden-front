@@ -32,6 +32,10 @@ class _TaskTileState extends ConsumerState<TaskTile>
 
   late TextEditingController _noteController;
 
+  bool _rowHovered = false;
+  bool _noteHovered = false;
+  bool _priorityHovered = false;
+
   @override
   void initState() {
     super.initState();
@@ -195,19 +199,28 @@ class _TaskTileState extends ConsumerState<TaskTile>
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 250),
         opacity: isCompleted ? 0.45 : 1.0,
-        child: GestureDetector(
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _rowHovered = true),
+          onExit: (_) => setState(() => _rowHovered = false),
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
           onTap: _toggleExpanded,
           behavior: HitTestBehavior.opaque,
-          child: Container(
+          child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: _rowHovered && !isExpanded
+                ? AppColors.surface.withValues(alpha: 0.85)
+                : AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isExpanded
                   ? AppColors.goldenBorder
-                  : isHigh
-                      ? AppColors.goldenBorder
-                      : AppColors.border,
+                  : _rowHovered
+                      ? AppColors.goldenBorder.withValues(alpha: 0.5)
+                      : isHigh
+                          ? AppColors.goldenBorder
+                          : AppColors.border,
             ),
           ),
           child: Column(
@@ -311,8 +324,28 @@ class _TaskTileState extends ConsumerState<TaskTile>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Note field
-                                TextField(
+                                // Note field with hover indicator
+                                MouseRegion(
+                                  onEnter: (_) =>
+                                      setState(() => _noteHovered = true),
+                                  onExit: (_) =>
+                                      setState(() => _noteHovered = false),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.xs,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: _noteHovered
+                                            ? AppColors.goldenBorder
+                                                .withValues(alpha: 0.4)
+                                            : Colors.transparent,
+                                      ),
+                                    ),
+                                    child: TextField(
                                   controller: _noteController,
                                   style: const TextStyle(
                                     fontFamily: AppTypography.bodyFont,
@@ -337,6 +370,8 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                   onTapOutside: (_) =>
                                       _saveNote(_noteController.text),
                                 ),
+                                    ),
+                                  ),
                                 const SizedBox(height: AppSpacing.md),
                                 // Meta row: date + priority toggle
                                 Row(
@@ -376,10 +411,18 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                       ),
                                     ),
                                     const SizedBox(width: AppSpacing.sm),
-                                    // Priority toggle
-                                    GestureDetector(
+                                    // Priority toggle with hover indicator
+                                    MouseRegion(
+                                      onEnter: (_) => setState(
+                                          () => _priorityHovered = true),
+                                      onExit: (_) => setState(
+                                          () => _priorityHovered = false),
+                                      cursor: SystemMouseCursors.click,
+                                      child: GestureDetector(
                                       onTap: _togglePriority,
-                                      child: Container(
+                                      child: AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 150),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: AppSpacing.sm,
                                           vertical: 3,
@@ -395,7 +438,10 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                             color: widget.task.priority ==
                                                     TaskPriority.high
                                                 ? AppColors.goldenBorder
-                                                : AppColors.border,
+                                                : _priorityHovered
+                                                    ? AppColors.goldenBorder
+                                                        .withValues(alpha: 0.5)
+                                                    : AppColors.border,
                                           ),
                                         ),
                                         child: Row(
@@ -429,6 +475,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                           ],
                                         ),
                                       ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -441,6 +488,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
               ),
             ],
           ),
+        ),
         ),
       ),
       ),
