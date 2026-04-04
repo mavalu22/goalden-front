@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../../today/providers/today_provider.dart';
+import '../screens/day_detail_screen.dart';
 
 class DayCard extends ConsumerStatefulWidget {
   const DayCard({
@@ -145,15 +146,23 @@ class _DayCardState extends ConsumerState<DayCard> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          dayName,
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFont,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _isToday
-                                ? AppColors.golden
-                                : AppColors.textSecondary,
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  DayDetailScreen(date: widget.date),
+                            ),
+                          ),
+                          child: Text(
+                            dayName,
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFont,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _isToday
+                                  ? AppColors.golden
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       ),
