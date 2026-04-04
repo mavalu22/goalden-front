@@ -22,5 +22,9 @@ abstract class Task with _$Task {
     @Default(0) int sortOrder,
     /// Non-null when this task is a generated instance of a recurring source task.
     String? sourceTaskId,
+    /// Optional start time stored as minutes from midnight (0–1439).
+    int? startTimeMinutes,
+    /// Optional end time stored as minutes from midnight (0–1439).
+    int? endTimeMinutes,
   }) = _Task;
 }

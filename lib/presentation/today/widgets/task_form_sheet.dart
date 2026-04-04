@@ -133,6 +133,9 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   late TaskPriority _priority;
   late TaskRecurrence _recurrence;
   late Set<int> _recurrenceDays;
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
+  String? _timeError;
 
   bool _isSubmitting = false;
   bool get _isEditing => widget.task != null;
@@ -145,10 +148,22 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
           _selectedDate != t.date ||
           _priority != t.priority ||
           _recurrence != t.recurrence ||
-          !_setEquals(_recurrenceDays, Set<int>.from(t.recurrenceDays));
+          !_setEquals(_recurrenceDays, Set<int>.from(t.recurrenceDays)) ||
+          _toMinutes(_startTime) != t.startTimeMinutes ||
+          _toMinutes(_endTime) != t.endTimeMinutes;
     }
     // Create mode: dirty if the user typed anything in the title
     return _titleController.text.trim().isNotEmpty;
+  }
+
+  int? _toMinutes(TimeOfDay? t) =>
+      t != null ? t.hour * 60 + t.minute : null;
+
+  String _formatTime(TimeOfDay t) {
+    final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
   bool _setEquals(Set<int> a, Set<int> b) =>
@@ -226,6 +241,16 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       _priority = t.priority;
       _recurrence = t.recurrence;
       _recurrenceDays = Set<int>.from(t.recurrenceDays);
+      _startTime = t.startTimeMinutes != null
+          ? TimeOfDay(
+              hour: t.startTimeMinutes! ~/ 60,
+              minute: t.startTimeMinutes! % 60)
+          : null;
+      _endTime = t.endTimeMinutes != null
+          ? TimeOfDay(
+              hour: t.endTimeMinutes! ~/ 60,
+              minute: t.endTimeMinutes! % 60)
+          : null;
     } else {
       // Defaults for create mode
       final now = DateTime.now();
@@ -275,6 +300,63 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
     }
   }
 
+  Future<void> _pickStartTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _startTime ?? TimeOfDay.now(),
+      builder: _timePickerTheme,
+    );
+    if (picked != null) {
+      setState(() {
+        _startTime = picked;
+        _timeError = null;
+        // Auto-clear end time if it's now before start
+        if (_endTime != null && _toMinutes(_endTime)! <= _toMinutes(picked)!) {
+          _endTime = null;
+        }
+      });
+    }
+  }
+
+  Future<void> _pickEndTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _endTime ?? _startTime ?? TimeOfDay.now(),
+      builder: _timePickerTheme,
+    );
+    if (picked != null) {
+      if (_startTime != null &&
+          _toMinutes(picked)! <= _toMinutes(_startTime)!) {
+        setState(() => _timeError = 'End time must be after start time');
+        return;
+      }
+      setState(() {
+        _endTime = picked;
+        _timeError = null;
+      });
+    }
+  }
+
+  void _clearTime() => setState(() {
+        _startTime = null;
+        _endTime = null;
+        _timeError = null;
+      });
+
+  Widget _timePickerTheme(BuildContext context, Widget? child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.golden,
+            surface: AppColors.surface,
+            onSurface: AppColors.textPrimary,
+          ),
+          dialogTheme: const DialogThemeData(
+            backgroundColor: AppColors.background,
+          ),
+        ),
+        child: child!,
+      );
+
   Future<void> _submit() async {
     if (_titleController.text.trim().isEmpty) {
       _titleFocusNode.requestFocus();
@@ -296,6 +378,8 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
               note: note,
               recurrence: _recurrence,
               recurrenceDays: days,
+              startTimeMinutes: _toMinutes(_startTime),
+              endTimeMinutes: _toMinutes(_endTime),
             ),
           );
     } else {
@@ -306,6 +390,8 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
             note: note,
             recurrence: _recurrence,
             recurrenceDays: days,
+            startTimeMinutes: _toMinutes(_startTime),
+            endTimeMinutes: _toMinutes(_endTime),
           );
     }
     if (mounted) Navigator.of(context).pop();
@@ -451,6 +537,113 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
             minLines: 3,
           ),
         ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Time range field
+        const _FieldLabel('Time'),
+        const SizedBox(height: AppSpacing.xs),
+        Row(
+          children: [
+            // Start time picker
+            Expanded(
+              child: Pressable(
+                onTap: _pickStartTime,
+                borderRadius: BorderRadius.circular(12),
+                hoverColor: AppColors.golden.withValues(alpha: 0.06),
+                child: _inputContainer(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.md,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule_outlined,
+                            size: 15, color: AppColors.textMuted),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          _startTime != null
+                              ? _formatTime(_startTime!)
+                              : 'Start',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 13,
+                            color: _startTime != null
+                                ? AppColors.textPrimary
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            // End time picker
+            Expanded(
+              child: Pressable(
+                onTap: _startTime != null ? _pickEndTime : null,
+                borderRadius: BorderRadius.circular(12),
+                hoverColor: _startTime != null
+                    ? AppColors.golden.withValues(alpha: 0.06)
+                    : null,
+                child: Opacity(
+                  opacity: _startTime != null ? 1.0 : 0.4,
+                  child: _inputContainer(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.md,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.schedule_outlined,
+                              size: 15, color: AppColors.textMuted),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            _endTime != null ? _formatTime(_endTime!) : 'End',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFont,
+                              fontSize: 13,
+                              color: _endTime != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Clear button (only when time is set)
+            if (_startTime != null) ...[
+              const SizedBox(width: AppSpacing.xs),
+              Pressable(
+                onTap: _clearTime,
+                borderRadius: BorderRadius.circular(20),
+                hoverColor: AppColors.error.withValues(alpha: 0.1),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.close, size: 16, color: AppColors.textMuted),
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (_timeError != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            _timeError!,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 12,
+              color: AppColors.error,
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
 
         // Recurrence field

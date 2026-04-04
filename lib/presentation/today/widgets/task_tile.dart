@@ -108,6 +108,17 @@ class _TaskTileState extends ConsumerState<TaskTile>
         .updateTask(widget.task.copyWith(priority: next));
   }
 
+  static String _formatTimeRange(int startMin, int endMin) {
+    String fmt(int mins) {
+      final h = mins ~/ 60;
+      final m = mins % 60;
+      final period = h < 12 ? 'AM' : 'PM';
+      final h12 = h % 12 == 0 ? 12 : h % 12;
+      return m == 0 ? '$h12 $period' : '$h12:${m.toString().padLeft(2, '0')} $period';
+    }
+    return '${fmt(startMin)} – ${fmt(endMin)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCompleted = widget.task.done;
@@ -262,27 +273,48 @@ class _TaskTileState extends ConsumerState<TaskTile>
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Align(
-                          key: ValueKey(isCompleted),
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            widget.task.title,
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFont,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: isCompleted
-                                  ? AppColors.textMuted
-                                  : AppColors.textPrimary,
-                              decoration: isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                              decorationColor: AppColors.textMuted,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Align(
+                              key: ValueKey(isCompleted),
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                widget.task.title,
+                                style: TextStyle(
+                                  fontFamily: AppTypography.bodyFont,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: isCompleted
+                                      ? AppColors.textMuted
+                                      : AppColors.textPrimary,
+                                  decoration: isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  decorationColor: AppColors.textMuted,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          if (widget.task.startTimeMinutes != null &&
+                              widget.task.endTimeMinutes != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              _formatTimeRange(
+                                widget.task.startTimeMinutes!,
+                                widget.task.endTimeMinutes!,
+                              ),
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFont,
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     if (widget.task.sourceTaskId != null) ...[

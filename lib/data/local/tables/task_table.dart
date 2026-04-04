@@ -37,6 +37,12 @@ class Tasks extends Table {
   /// source task's id. Null for original (non-instance) tasks.
   TextColumn get sourceTaskId => text().nullable()();
 
+  /// Optional start time in minutes from midnight (0–1439).
+  IntColumn get startTimeMinutes => integer().nullable()();
+
+  /// Optional end time in minutes from midnight (0–1439).
+  IntColumn get endTimeMinutes => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

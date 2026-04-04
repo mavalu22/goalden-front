@@ -410,19 +410,39 @@ class _TaskRow extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          // Title
+          // Title + optional time
           Expanded(
-            child: Text(
-              task.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 13,
-                color: task.done ? AppColors.textMuted : AppColors.textPrimary,
-                decoration: task.done ? TextDecoration.lineThrough : null,
-                decorationColor: AppColors.textMuted,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  task.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 13,
+                    color:
+                        task.done ? AppColors.textMuted : AppColors.textPrimary,
+                    decoration: task.done ? TextDecoration.lineThrough : null,
+                    decorationColor: AppColors.textMuted,
+                  ),
+                ),
+                if (task.startTimeMinutes != null &&
+                    task.endTimeMinutes != null) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    _shortTimeRange(
+                        task.startTimeMinutes!, task.endTimeMinutes!),
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 10,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -461,6 +481,21 @@ class _TaskRow extends ConsumerWidget {
       childWhenDragging: Opacity(opacity: 0.3, child: row),
       child: row,
     );
+  }
+
+  static String _shortTimeRange(int startMin, int endMin) {
+    String fmt(int mins) {
+      final h = mins ~/ 60;
+      final m = mins % 60;
+      final h12 = h % 12 == 0 ? 12 : h % 12;
+      return m == 0 ? '$h12' : '$h12:${m.toString().padLeft(2, '0')}';
+    }
+    final startPeriod = startMin < 720 ? 'AM' : 'PM';
+    final endPeriod = endMin < 720 ? 'AM' : 'PM';
+    if (startPeriod == endPeriod) {
+      return '${fmt(startMin)}–${fmt(endMin)} $endPeriod';
+    }
+    return '${fmt(startMin)} $startPeriod–${fmt(endMin)} $endPeriod';
   }
 }
 
