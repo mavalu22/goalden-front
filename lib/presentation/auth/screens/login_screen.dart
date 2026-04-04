@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -55,6 +56,10 @@ class LoginScreen extends ConsumerWidget {
   }
 }
 
+bool get _isApplePlatform =>
+    defaultTargetPlatform == TargetPlatform.iOS ||
+    defaultTargetPlatform == TargetPlatform.macOS;
+
 // ─── Desktop ────────────────────────────────────────────────────────────────
 
 class _DesktopLoginView extends StatelessWidget {
@@ -106,14 +111,16 @@ class _DesktopLoginView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
-                  // Apple
-                  SocialAuthButton(
-                    label: 'Continue with Apple',
-                    icon: const _AppleIcon(),
-                    onPressed: isLoading ? null : _signInWithApple,
-                    style: SocialAuthButtonStyle.dark,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
+                  // Apple — only on Apple platforms
+                  if (_isApplePlatform) ...[
+                    SocialAuthButton(
+                      label: 'Continue with Apple',
+                      icon: const _AppleIcon(),
+                      onPressed: isLoading ? null : _signInWithApple,
+                      style: SocialAuthButtonStyle.dark,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   // Google
                   SocialAuthButton(
                     label: isLoading ? '' : 'Continue with Google',
@@ -239,13 +246,16 @@ class _MobileLoginView extends StatelessWidget {
             style: SocialAuthButtonStyle.light,
           ),
           const SizedBox(height: AppSpacing.sm),
-          // Apple
-          SocialAuthButton(
-            label: 'Sign in with Apple',
-            icon: const _AppleIcon(color: Colors.white),
-            onPressed: isLoading ? null : _signInWithApple,
-            style: SocialAuthButtonStyle.black,
-          ),
+          // Apple — only on Apple platforms
+          if (_isApplePlatform) ...[
+            SocialAuthButton(
+              label: 'Sign in with Apple',
+              icon: const _AppleIcon(color: Colors.white),
+              onPressed: isLoading ? null : _signInWithApple,
+              style: SocialAuthButtonStyle.black,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           Center(
             child: Builder(
