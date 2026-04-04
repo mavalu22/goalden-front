@@ -116,7 +116,16 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    // Best-effort: only attempt Google sign-out on platforms where the plugin
+    // is registered. On Linux (and for email-auth users), this would throw a
+    // MissingPluginException and prevent _supabase.auth.signOut() from running.
+    if (!kIsWeb && !_isDesktop) {
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // Not signed in with Google or plugin unavailable — safe to ignore.
+      }
+    }
     await _supabase.auth.signOut();
   }
 
