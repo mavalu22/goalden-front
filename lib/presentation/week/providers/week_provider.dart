@@ -26,10 +26,9 @@ final weekLabelProvider = Provider<String>((ref) {
 });
 
 /// All tasks for the current viewed week (Monday–Sunday), as a reactive stream.
-final weekTasksProvider = StreamProvider<List<Task>>((ref) {
+final weekTasksProvider = StreamProvider<List<Task>>((ref) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
   final weekStart = ref.watch(weekStartProvider);
   final weekEnd = weekStart.add(const Duration(days: 6));
-  return ref
-      .watch(taskRepositoryProvider)
-      .watchTasksForDateRange(weekStart, weekEnd);
+  yield* repo.watchTasksForDateRange(weekStart, weekEnd);
 });
