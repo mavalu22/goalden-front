@@ -150,7 +150,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
             onPressed: (ctx) async {
               final picked = await showPostponeSheet(ctx);
               if (picked != null) {
-                final newDate = DateTime.utc(
+                final newDate = DateTime(
                   picked.year,
                   picked.month,
                   picked.day,
