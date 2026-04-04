@@ -20,5 +20,7 @@ abstract class Task with _$Task {
     required DateTime createdAt,
     DateTime? completedAt,
     @Default(0) int sortOrder,
+    /// Non-null when this task is a generated instance of a recurring source task.
+    String? sourceTaskId,
   }) = _Task;
 }

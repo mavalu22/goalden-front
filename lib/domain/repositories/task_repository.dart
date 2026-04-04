@@ -30,4 +30,13 @@ abstract class TaskRepository {
 
   /// Reactive stream of all tasks within a date range [start, end] inclusive.
   Stream<List<Task>> watchTasksForDateRange(DateTime start, DateTime end);
+
+  /// All source recurring tasks (tasks with recurrence != none and no sourceTaskId).
+  Future<List<Task>> getRecurringSourceTasks();
+
+  /// Check if a recurring instance already exists for [sourceTaskId] on [date].
+  Future<bool> recurringInstanceExists(String sourceTaskId, DateTime date);
+
+  /// Delete all future instances of a recurring source task (today and forward).
+  Future<void> deleteFutureInstances(String sourceTaskId, DateTime fromDate);
 }

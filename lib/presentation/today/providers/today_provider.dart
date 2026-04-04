@@ -10,9 +10,12 @@ const _uuid = Uuid();
 final expandedTaskIdProvider = StateProvider<String?>((ref) => null);
 
 /// Reactive stream of tasks for today.
+/// Also triggers recurrence generation for today on first load.
 final todayTasksProvider = StreamProvider<List<Task>>((ref) async* {
   final repo = await ref.watch(taskRepositoryProvider.future);
+  final svc = await ref.watch(recurrenceServiceProvider.future);
   final now = DateTime.now();
+  await svc.generateForDate(now);
   yield* repo.watchTasksForDate(now);
 });
 
@@ -72,8 +75,14 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     await repo.updateTask(task);
   }
 
-  Future<void> deleteTask(String id) async {
+  Future<void> deleteTask(String id, {bool isRecurringSource = false}) async {
     final repo = await ref.read(taskRepositoryProvider.future);
+    if (isRecurringSource) {
+      // Remove all future instances before deleting the source.
+      final today = DateTime.now();
+      final todayLocal = DateTime(today.year, today.month, today.day);
+      await repo.deleteFutureInstances(id, todayLocal);
+    }
     await repo.deleteTask(id);
   }
 
