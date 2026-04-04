@@ -39,8 +39,12 @@ void main() async {
 
   // Stream for subsequent deep links while the app is already running
   // (primary instance receives the URI forwarded from the secondary via D-Bus).
-  appLinks.uriLinkStream.listen((uri) {
-    Supabase.instance.client.auth.getSessionFromUrl(uri);
+  appLinks.uriLinkStream.listen((uri) async {
+    try {
+      await Supabase.instance.client.auth.getSessionFromUrl(uri);
+    } catch (_) {
+      // Stale or already-consumed flow state — safe to ignore.
+    }
   });
 
   runApp(
