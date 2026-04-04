@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../providers/today_provider.dart';
 import 'postpone_sheet.dart';
+import 'task_form_sheet.dart';
 
 class TaskTile extends ConsumerStatefulWidget {
   const TaskTile({super.key, required this.task, this.dragIndex});
@@ -356,6 +357,25 @@ class _TaskTileState extends ConsumerState<TaskTile>
                                       ),
                                     ),
                                     const Spacer(),
+                                    // Edit button
+                                    GestureDetector(
+                                      onTap: () => showTaskEditForm(
+                                        context,
+                                        task: widget.task,
+                                      ),
+                                      child: const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: AppSpacing.xs,
+                                          vertical: 3,
+                                        ),
+                                        child: Icon(
+                                          Icons.edit_outlined,
+                                          size: 14,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
                                     // Priority toggle
                                     GestureDetector(
                                       onTap: _togglePriority,

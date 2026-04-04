@@ -9,10 +9,23 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../providers/today_provider.dart';
 
-/// Opens the full task creation form as a bottom sheet (mobile) or dialog
-/// (desktop). Pass [defaultDate] to pre-fill the date field.
+/// Opens the task creation form. Pass [defaultDate] to pre-fill the date.
 Future<void> showTaskForm(
   BuildContext context, {
+  DateTime? defaultDate,
+}) =>
+    _show(context, task: null, defaultDate: defaultDate);
+
+/// Opens the task editing form pre-filled with [task]'s current values.
+Future<void> showTaskEditForm(
+  BuildContext context, {
+  required Task task,
+}) =>
+    _show(context, task: task);
+
+Future<void> _show(
+  BuildContext context, {
+  Task? task,
   DateTime? defaultDate,
 }) async {
   final isDesktop =
@@ -22,14 +35,14 @@ Future<void> showTaskForm(
     await showDialog<void>(
       context: context,
       barrierColor: Colors.black54,
-      builder: (_) => _TaskFormDialog(defaultDate: defaultDate),
+      builder: (_) => _TaskFormDialog(task: task, defaultDate: defaultDate),
     );
   } else {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _TaskFormSheet(defaultDate: defaultDate),
+      builder: (_) => _TaskFormSheet(task: task, defaultDate: defaultDate),
     );
   }
 }
@@ -37,8 +50,9 @@ Future<void> showTaskForm(
 // ─── Mobile bottom sheet wrapper ──────────────────────────────────────────────
 
 class _TaskFormSheet extends StatelessWidget {
-  const _TaskFormSheet({this.defaultDate});
+  const _TaskFormSheet({this.task, this.defaultDate});
 
+  final Task? task;
   final DateTime? defaultDate;
 
   @override
@@ -53,6 +67,7 @@ class _TaskFormSheet extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: _TaskFormContent(
+          task: task,
           defaultDate: defaultDate,
           scrollController: controller,
         ),
@@ -64,8 +79,9 @@ class _TaskFormSheet extends StatelessWidget {
 // ─── Desktop dialog wrapper ───────────────────────────────────────────────────
 
 class _TaskFormDialog extends StatelessWidget {
-  const _TaskFormDialog({this.defaultDate});
+  const _TaskFormDialog({this.task, this.defaultDate});
 
+  final Task? task;
   final DateTime? defaultDate;
 
   @override
@@ -81,7 +97,7 @@ class _TaskFormDialog extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: _TaskFormContent(defaultDate: defaultDate),
+          child: _TaskFormContent(task: task, defaultDate: defaultDate),
         ),
       ),
     );
@@ -91,8 +107,9 @@ class _TaskFormDialog extends StatelessWidget {
 // ─── Form content ─────────────────────────────────────────────────────────────
 
 class _TaskFormContent extends ConsumerStatefulWidget {
-  const _TaskFormContent({this.defaultDate, this.scrollController});
+  const _TaskFormContent({this.task, this.defaultDate, this.scrollController});
 
+  final Task? task;
   final DateTime? defaultDate;
   final ScrollController? scrollController;
 
@@ -106,21 +123,37 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   final _titleFocusNode = FocusNode();
 
   late DateTime _selectedDate;
-  TaskPriority _priority = TaskPriority.normal;
-  TaskRecurrence _recurrence = TaskRecurrence.none;
-  final Set<int> _recurrenceDays = {};
+  late TaskPriority _priority;
+  late TaskRecurrence _recurrence;
+  late Set<int> _recurrenceDays;
 
   bool _isSubmitting = false;
+  bool get _isEditing => widget.task != null;
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _selectedDate =
-        widget.defaultDate ?? DateTime(now.year, now.month, now.day);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _titleFocusNode.requestFocus();
-    });
+    final t = widget.task;
+    if (t != null) {
+      // Pre-fill for edit mode
+      _titleController.text = t.title;
+      _noteController.text = t.note ?? '';
+      _selectedDate = t.date;
+      _priority = t.priority;
+      _recurrence = t.recurrence;
+      _recurrenceDays = Set<int>.from(t.recurrenceDays);
+    } else {
+      // Defaults for create mode
+      final now = DateTime.now();
+      _selectedDate =
+          widget.defaultDate ?? DateTime(now.year, now.month, now.day);
+      _priority = TaskPriority.normal;
+      _recurrence = TaskRecurrence.none;
+      _recurrenceDays = {};
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _titleFocusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -164,16 +197,33 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       return;
     }
     setState(() => _isSubmitting = true);
-    await ref.read(taskActionsProvider.notifier).createTask(
-          _titleController.text.trim(),
-          date: _selectedDate,
-          priority: _priority,
-          note: _noteController.text.trim().isEmpty
-              ? null
-              : _noteController.text.trim(),
-          recurrence: _recurrence,
-          recurrenceDays: _recurrenceDays.toList()..sort(),
-        );
+
+    final note = _noteController.text.trim().isEmpty
+        ? null
+        : _noteController.text.trim();
+    final days = _recurrenceDays.toList()..sort();
+
+    if (_isEditing) {
+      await ref.read(taskActionsProvider.notifier).updateTask(
+            widget.task!.copyWith(
+              title: _titleController.text.trim(),
+              date: _selectedDate,
+              priority: _priority,
+              note: note,
+              recurrence: _recurrence,
+              recurrenceDays: days,
+            ),
+          );
+    } else {
+      await ref.read(taskActionsProvider.notifier).createTask(
+            _titleController.text.trim(),
+            date: _selectedDate,
+            priority: _priority,
+            note: note,
+            recurrence: _recurrence,
+            recurrenceDays: days,
+          );
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -201,9 +251,9 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
           ),
         ),
         // Header
-        const Text(
-          'New Task',
-          style: TextStyle(
+        Text(
+          _isEditing ? 'Edit Task' : 'New Task',
+          style: const TextStyle(
             fontFamily: AppTypography.displayFont,
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -317,7 +367,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         ],
         const SizedBox(height: AppSpacing.xxxl),
 
-        // Create button
+        // Save/Create button
         GestureDetector(
           onTap: _isSubmitting ? null : _submit,
           child: Container(
@@ -333,12 +383,13 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(AppColors.background),
+                        valueColor:
+                            AlwaysStoppedAnimation(AppColors.background),
                       ),
                     )
-                  : const Text(
-                      'Create Task',
-                      style: TextStyle(
+                  : Text(
+                      _isEditing ? 'Save Changes' : 'Create Task',
+                      style: const TextStyle(
                         fontFamily: AppTypography.bodyFont,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
