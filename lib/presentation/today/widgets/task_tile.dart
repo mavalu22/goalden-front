@@ -12,13 +12,13 @@ import 'postpone_sheet.dart';
 import 'task_form_sheet.dart';
 
 class TaskTile extends ConsumerStatefulWidget {
-  const TaskTile({super.key, required this.task, this.dragIndex});
+  const TaskTile({super.key, required this.task, required this.index});
 
   final Task task;
 
-  /// When non-null, a drag handle is rendered at the end of the main row and
-  /// wrapped in a [ReorderableDragStartListener] for the given index.
-  final int? dragIndex;
+  /// Index within the reorderable list — used to attach [ReorderableDragStartListener]
+  /// to the chevron button so long-pressing it activates drag-to-reorder.
+  final int index;
 
   @override
   ConsumerState<TaskTile> createState() => _TaskTileState();
@@ -274,27 +274,16 @@ class _TaskTileState extends ConsumerState<TaskTile>
                       const _HighBadge(),
                     ],
                     const SizedBox(width: AppSpacing.xs),
-                    Icon(
-                      isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 16,
-                      color: AppColors.textMuted,
-                    ),
-                    if (widget.dragIndex != null) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      ReorderableDragStartListener(
-                        index: widget.dragIndex!,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                          child: Icon(
-                            Icons.drag_handle,
-                            color: AppColors.textMuted,
-                            size: 18,
-                          ),
-                        ),
+                    ReorderableDragStartListener(
+                      index: widget.index,
+                      child: Icon(
+                        isExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        size: 16,
+                        color: AppColors.textMuted,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
