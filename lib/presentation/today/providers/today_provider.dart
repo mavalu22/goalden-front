@@ -33,13 +33,24 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  Future<void> createTask(String title, {DateTime? date}) async {
+  Future<void> createTask(
+    String title, {
+    DateTime? date,
+    TaskPriority priority = TaskPriority.normal,
+    String? note,
+    TaskRecurrence recurrence = TaskRecurrence.none,
+    List<int> recurrenceDays = const [],
+  }) async {
     if (title.trim().isEmpty) return;
     final now = DateTime.now();
     final task = Task(
       id: _uuid.v4(),
       title: title.trim(),
       date: date ?? DateTime(now.year, now.month, now.day),
+      priority: priority,
+      note: note?.trim().isEmpty == true ? null : note?.trim(),
+      recurrence: recurrence,
+      recurrenceDays: recurrenceDays,
       createdAt: now,
     );
     final repo = await ref.read(taskRepositoryProvider.future);
