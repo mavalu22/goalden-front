@@ -11,9 +11,13 @@ import '../providers/today_provider.dart';
 import 'postpone_sheet.dart';
 
 class TaskTile extends ConsumerStatefulWidget {
-  const TaskTile({super.key, required this.task});
+  const TaskTile({super.key, required this.task, this.dragIndex});
 
   final Task task;
+
+  /// When non-null, a drag handle is rendered at the end of the main row and
+  /// wrapped in a [ReorderableDragStartListener] for the given index.
+  final int? dragIndex;
 
   @override
   ConsumerState<TaskTile> createState() => _TaskTileState();
@@ -260,6 +264,20 @@ class _TaskTileState extends ConsumerState<TaskTile>
                       size: 16,
                       color: AppColors.textMuted,
                     ),
+                    if (widget.dragIndex != null) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      ReorderableDragStartListener(
+                        index: widget.dragIndex!,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                          child: Icon(
+                            Icons.drag_handle,
+                            color: AppColors.textMuted,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
