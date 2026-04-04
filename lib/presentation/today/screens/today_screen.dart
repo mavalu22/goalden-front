@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart' show Task;
 import '../providers/today_provider.dart';
+import '../utils/daily_quote.dart';
 import '../utils/task_sort.dart';
 import '../widgets/pending_section.dart';
 import '../widgets/task_form_sheet.dart';
@@ -419,6 +420,7 @@ class _QuoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final quote = getTodayQuote();
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -441,14 +443,14 @@ class _QuoteCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'The secret of your future is hidden in your daily routine.',
-                  style: TextStyle(
+                  '"${quote.text}"',
+                  style: const TextStyle(
                     fontFamily: AppTypography.displayFont,
                     fontSize: 13,
                     fontStyle: FontStyle.italic,
@@ -456,10 +458,10 @@ class _QuoteCard extends StatelessWidget {
                     height: 1.4,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  '— Mike Murdock',
-                  style: TextStyle(
+                  '— ${quote.author}',
+                  style: const TextStyle(
                     fontFamily: AppTypography.bodyFont,
                     fontSize: 11,
                     color: AppColors.textMuted,
