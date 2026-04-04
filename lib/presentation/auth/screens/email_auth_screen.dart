@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../domain/models/auth_user.dart';
 import '../../../providers/auth_provider.dart';
 import '../../shared/widgets/app_button.dart';
 import '../../shared/widgets/app_text_field.dart';
@@ -171,6 +172,17 @@ class _EmailAuthScreenState extends ConsumerState<EmailAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Navigate away as soon as the user becomes authenticated.
+    ref.listen<AsyncValue<AppUser?>>(authUserProvider, (_, next) {
+      next.whenOrNull(
+        data: (user) {
+          if (user != null && mounted) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+        },
+      );
+    });
+
     ref.listen<AsyncValue<void>>(authActionsProvider, (_, next) {
       next.whenOrNull(
         error: (error, _) {
