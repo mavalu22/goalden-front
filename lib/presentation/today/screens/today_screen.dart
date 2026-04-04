@@ -312,7 +312,7 @@ class _TaskList extends ConsumerWidget {
             ),
             child: Center(
               child: Text(
-                '← swipe to remove  ·  swipe to postpone →',
+                '← swipe to remove · swipe to postpone →',
                 style: TextStyle(
                   fontFamily: AppTypography.bodyFont,
                   fontSize: 11,
