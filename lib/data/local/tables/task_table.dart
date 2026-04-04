@@ -33,6 +33,10 @@ class Tasks extends Table {
 
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
+  /// If this is a generated instance of a recurring task, this holds the
+  /// source task's id. Null for original (non-instance) tasks.
+  TextColumn get sourceTaskId => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

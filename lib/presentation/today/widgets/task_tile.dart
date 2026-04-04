@@ -114,6 +114,8 @@ class _TaskTileState extends ConsumerState<TaskTile>
     final isHigh = widget.task.priority == TaskPriority.high && !isCompleted;
     final expandedId = ref.watch(expandedTaskIdProvider);
     final isExpanded = expandedId == widget.task.id;
+    final isRecurringSource = widget.task.recurrence != TaskRecurrence.none &&
+        widget.task.sourceTaskId == null;
 
     return ClipRect(
       child: Slidable(
@@ -168,12 +170,18 @@ class _TaskTileState extends ConsumerState<TaskTile>
         extentRatio: 0.3,
         dismissible: DismissiblePane(
           onDismissed: () =>
-              ref.read(taskActionsProvider.notifier).deleteTask(widget.task.id),
+              ref.read(taskActionsProvider.notifier).deleteTask(
+                widget.task.id,
+                isRecurringSource: isRecurringSource,
+              ),
         ),
         children: [
           CustomSlidableAction(
             onPressed: (_) =>
-                ref.read(taskActionsProvider.notifier).deleteTask(widget.task.id),
+                ref.read(taskActionsProvider.notifier).deleteTask(
+                  widget.task.id,
+                  isRecurringSource: isRecurringSource,
+                ),
             backgroundColor: AppColors.error,
             foregroundColor: Colors.white,
             borderRadius: const BorderRadius.horizontal(
@@ -277,6 +285,14 @@ class _TaskTileState extends ConsumerState<TaskTile>
                         ),
                       ),
                     ),
+                    if (widget.task.sourceTaskId != null) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      const Icon(
+                        Icons.repeat,
+                        size: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ],
                     if (isHigh && !isExpanded) ...[
                       const SizedBox(width: AppSpacing.sm),
                       const _HighBadge(),

@@ -103,4 +103,42 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
           ))
         .watch();
   }
+
+  /// All source recurring tasks — recurrence is not 'none' and sourceTaskId is null.
+  Future<List<TaskEntry>> getRecurringSourceTasks() {
+    return (select(tasks)
+          ..where(
+            (t) =>
+                t.recurrence.isNotValue('none') &
+                t.sourceTaskId.isNull(),
+          ))
+        .get();
+  }
+
+  /// Whether a recurring instance already exists for [sourceId] on [date].
+  Future<bool> recurringInstanceExists(String sourceId, DateTime date) async {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+    final count = await (select(tasks)
+          ..where(
+            (t) =>
+                t.sourceTaskId.equals(sourceId) &
+                t.date.isBiggerOrEqualValue(dayStart) &
+                t.date.isSmallerThanValue(dayEnd),
+          ))
+        .get();
+    return count.isNotEmpty;
+  }
+
+  /// Delete all instances of [sourceId] on or after [fromDate].
+  Future<int> deleteFutureInstances(String sourceId, DateTime fromDate) {
+    final dayStart = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    return (delete(tasks)
+          ..where(
+            (t) =>
+                t.sourceTaskId.equals(sourceId) &
+                t.date.isBiggerOrEqualValue(dayStart),
+          ))
+        .go();
+  }
 }

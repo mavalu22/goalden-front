@@ -4,6 +4,7 @@ import '../data/local/database.dart';
 import '../data/local/daos/task_dao.dart';
 import '../data/repositories/task_repository_impl.dart';
 import '../domain/repositories/task_repository.dart';
+import '../domain/services/recurrence_service.dart';
 import 'auth_provider.dart';
 
 /// Derives a stable, file-safe identifier from the signed-in user.
@@ -35,4 +36,11 @@ final taskDaoProvider = FutureProvider<TaskDao>((ref) async {
 final taskRepositoryProvider = FutureProvider<TaskRepository>((ref) async {
   final dao = await ref.watch(taskDaoProvider.future);
   return TaskRepositoryImpl(dao);
+});
+
+/// Provides the [RecurrenceService] once the repository is ready.
+final recurrenceServiceProvider =
+    FutureProvider<RecurrenceService>((ref) async {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  return RecurrenceService(repo);
 });

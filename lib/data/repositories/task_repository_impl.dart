@@ -57,6 +57,22 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
+  Future<List<Task>> getRecurringSourceTasks() async {
+    final entries = await _dao.getRecurringSourceTasks();
+    return entries.map(_fromEntry).toList();
+  }
+
+  @override
+  Future<bool> recurringInstanceExists(String sourceTaskId, DateTime date) =>
+      _dao.recurringInstanceExists(sourceTaskId, date);
+
+  @override
+  Future<void> deleteFutureInstances(
+      String sourceTaskId, DateTime fromDate) async {
+    await _dao.deleteFutureInstances(sourceTaskId, fromDate);
+  }
+
+  @override
   Future<void> deleteOldPendingTasks({int days = 7}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final cutoffLocal = DateTime(cutoff.year, cutoff.month, cutoff.day);
@@ -87,6 +103,7 @@ class TaskRepositoryImpl implements TaskRepository {
       createdAt: e.createdAt,
       completedAt: e.completedAt,
       sortOrder: e.sortOrder,
+      sourceTaskId: e.sourceTaskId,
     );
   }
 
@@ -105,6 +122,7 @@ class TaskRepositoryImpl implements TaskRepository {
       createdAt: Value(t.createdAt),
       completedAt: Value(t.completedAt),
       sortOrder: Value(t.sortOrder),
+      sourceTaskId: Value(t.sourceTaskId),
     );
   }
 

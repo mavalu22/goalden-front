@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../../../domain/models/task.dart';
 import '../../../providers/database_provider.dart';
 
+export '../../../providers/database_provider.dart'
+    show recurrenceServiceProvider;
+
 /// Current week offset from this week (0 = this week, 1 = next, -1 = last).
 final weekOffsetProvider = StateProvider<int>((ref) => 0);
 
@@ -42,9 +45,18 @@ final tasksForDateProvider =
 });
 
 /// All tasks for the current viewed week (Monday–Sunday), as a reactive stream.
+/// Also triggers recurrence generation for each day of the viewed week.
 final weekTasksProvider = StreamProvider<List<Task>>((ref) async* {
   final repo = await ref.watch(taskRepositoryProvider.future);
+  final svc = await ref.watch(recurrenceServiceProvider.future);
   final weekStart = ref.watch(weekStartProvider);
   final weekEnd = weekStart.add(const Duration(days: 6));
+
+  // Generate recurring instances for every day in the visible week.
+  for (var i = 0; i <= 6; i++) {
+    final day = weekStart.add(Duration(days: i));
+    await svc.generateForDate(day);
+  }
+
   yield* repo.watchTasksForDateRange(weekStart, weekEnd);
 });
