@@ -75,6 +75,13 @@ class AuthActionsNotifier extends AsyncNotifier<void> {
     );
   }
 
+  Future<void> updateDisplayName(String name) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(authRepositoryProvider).updateDisplayName(name),
+    );
+  }
+
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(

@@ -2,10 +2,10 @@ import '../models/auth_user.dart';
 
 abstract class AuthRepository {
   /// Stream that emits the current user or null when signed out.
-  Stream<AuthUser?> get authStateChanges;
+  Stream<AppUser?> get authStateChanges;
 
   /// Returns the currently authenticated user, or null.
-  AuthUser? get currentUser;
+  AppUser? get currentUser;
 
   /// Sign in with Google OAuth.
   Future<void> signInWithGoogle();
@@ -27,6 +27,9 @@ abstract class AuthRepository {
 
   /// Send a password-reset email.
   Future<void> sendPasswordResetEmail(String email);
+
+  /// Update the user's display name in their profile metadata.
+  Future<void> updateDisplayName(String name);
 
   /// Sign the current user out.
   Future<void> signOut();

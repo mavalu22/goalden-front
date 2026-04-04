@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../providers/auth_provider.dart';
+import '../../profile/screens/profile_screen.dart';
 import 'nav_destination.dart';
 
 class MobileLayout extends StatelessWidget {
@@ -76,11 +77,34 @@ class _MobileAppBar extends ConsumerWidget implements PreferredSizeWidget {
               side: const BorderSide(color: AppColors.border),
             ),
             onSelected: (action) {
-              if (action == _SettingsAction.logout) {
+              if (action == _SettingsAction.profile) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ProfileScreen(),
+                  ),
+                );
+              } else if (action == _SettingsAction.logout) {
                 ref.read(authActionsProvider.notifier).signOut();
               }
             },
             itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: _SettingsAction.profile,
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 16, color: AppColors.textSecondary),
+                    SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: _SettingsAction.logout,
                 child: Row(
@@ -106,7 +130,7 @@ class _MobileAppBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 }
 
-enum _SettingsAction { logout }
+enum _SettingsAction { profile, logout }
 
 class _BottomTabBar extends StatelessWidget {
   const _BottomTabBar({
