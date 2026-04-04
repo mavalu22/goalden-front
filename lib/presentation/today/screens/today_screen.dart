@@ -300,24 +300,7 @@ class _TaskList extends ConsumerWidget {
             return Padding(
               key: ValueKey(task.id),
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Stack(
-                children: [
-                  TaskTile(task: task),
-                  Positioned(
-                    right: 8,
-                    top: 0,
-                    bottom: 0,
-                    child: ReorderableDragStartListener(
-                      index: i,
-                      child: const Icon(
-                        Icons.drag_handle,
-                        color: AppColors.textMuted,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: TaskTile(task: task, dragIndex: i),
             );
           },
         ),
