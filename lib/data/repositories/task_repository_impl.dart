@@ -59,8 +59,8 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<void> deleteOldPendingTasks({int days = 7}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
-    final cutoffUtc = DateTime.utc(cutoff.year, cutoff.month, cutoff.day);
-    await _dao.deleteOldPendingTasks(cutoffUtc);
+    final cutoffLocal = DateTime(cutoff.year, cutoff.month, cutoff.day);
+    await _dao.deleteOldPendingTasks(cutoffLocal);
   }
 
   @override

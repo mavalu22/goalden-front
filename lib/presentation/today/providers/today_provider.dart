@@ -39,7 +39,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     final task = Task(
       id: _uuid.v4(),
       title: title.trim(),
-      date: date ?? DateTime.utc(now.year, now.month, now.day),
+      date: date ?? DateTime(now.year, now.month, now.day),
       createdAt: now,
     );
     final repo = await ref.read(taskRepositoryProvider.future);
@@ -73,7 +73,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
 
   Future<void> rescheduleToToday(Task task) async {
     final now = DateTime.now();
-    final today = DateTime.utc(now.year, now.month, now.day);
+    final today = DateTime(now.year, now.month, now.day);
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.updateTask(task.copyWith(date: today));
   }

@@ -11,7 +11,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   /// All tasks for a specific calendar day (UTC).
   Future<List<TaskEntry>> getTasksForDate(DateTime date) {
-    final dayStart = DateTime.utc(date.year, date.month, date.day);
+    final dayStart = DateTime(date.year, date.month, date.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
     return (select(tasks)
           ..where(
@@ -23,7 +23,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   /// All uncompleted tasks with a date strictly before [date].
   Future<List<TaskEntry>> getPendingTasksBefore(DateTime date) {
-    final dayStart = DateTime.utc(date.year, date.month, date.day);
+    final dayStart = DateTime(date.year, date.month, date.day);
     return (select(tasks)
           ..where(
             (t) =>
@@ -35,7 +35,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   /// Watch tasks for today — reactive stream.
   Stream<List<TaskEntry>> watchTasksForDate(DateTime date) {
-    final dayStart = DateTime.utc(date.year, date.month, date.day);
+    final dayStart = DateTime(date.year, date.month, date.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
     return (select(tasks)
           ..where(
@@ -47,7 +47,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   /// Watch uncompleted tasks with a date strictly before [date] — reactive stream.
   Stream<List<TaskEntry>> watchPendingTasksBefore(DateTime date) {
-    final dayStart = DateTime.utc(date.year, date.month, date.day);
+    final dayStart = DateTime(date.year, date.month, date.day);
     return (select(tasks)
           ..where(
             (t) =>
@@ -94,12 +94,12 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
 
   /// All tasks within a date range [start, end] inclusive — reactive stream.
   Stream<List<TaskEntry>> watchTasksForDateRange(DateTime start, DateTime end) {
-    final startUtc = DateTime.utc(start.year, start.month, start.day);
-    final endUtc = DateTime.utc(end.year, end.month, end.day + 1); // exclusive end
+    final startLocal = DateTime(start.year, start.month, start.day);
+    final endLocal = DateTime(end.year, end.month, end.day + 1); // exclusive end
     return (select(tasks)
           ..where(
-            (t) => t.date.isBiggerOrEqualValue(startUtc) &
-                t.date.isSmallerThanValue(endUtc),
+            (t) => t.date.isBiggerOrEqualValue(startLocal) &
+                t.date.isSmallerThanValue(endLocal),
           ))
         .watch();
   }
