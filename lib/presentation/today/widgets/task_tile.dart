@@ -282,14 +282,23 @@ class _TaskTileState extends ConsumerState<TaskTile>
                       const _HighBadge(),
                     ],
                     const SizedBox(width: AppSpacing.xs),
+                    Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
                     ReorderableDragStartListener(
                       index: widget.index,
-                      child: Icon(
-                        isExpanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: AppColors.textMuted,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 2),
+                        child: Icon(
+                          Icons.drag_handle,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ),
                   ],
