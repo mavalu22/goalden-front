@@ -34,6 +34,13 @@ final weekLabelProvider = Provider<String>((ref) {
   }
 });
 
+/// Reactive stream of tasks for a specific calendar day.
+final tasksForDateProvider =
+    StreamProvider.family<List<Task>, DateTime>((ref, date) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  yield* repo.watchTasksForDate(date);
+});
+
 /// All tasks for the current viewed week (Monday–Sunday), as a reactive stream.
 final weekTasksProvider = StreamProvider<List<Task>>((ref) async* {
   final repo = await ref.watch(taskRepositoryProvider.future);

@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../../today/providers/today_provider.dart';
+import '../screens/day_detail_screen.dart';
 
 class DayColumn extends ConsumerStatefulWidget {
   const DayColumn({
@@ -95,8 +96,14 @@ class _DayColumnState extends ConsumerState<DayColumn> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Padding(
+          // Header — tapping navigates to the day detail screen
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => DayDetailScreen(date: widget.date),
+              ),
+            ),
+            child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,6 +162,7 @@ class _DayColumnState extends ConsumerState<DayColumn> {
                   _ProgressCounter(completed: completed, total: total),
                 ],
               ],
+            ),
             ),
           ),
           const Divider(height: 1, color: AppColors.border),
