@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../domain/models/task.dart';
 import '../../../providers/database_provider.dart';
@@ -15,14 +16,22 @@ final weekStartProvider = Provider<DateTime>((ref) {
   return monday.add(Duration(days: offset * 7));
 });
 
-/// Human-readable label for the week navigation bar.
+/// Human-readable date-range label for the week navigation bar.
+/// Format: "April 7–13" (same month) or "March 31 – April 6" (different months).
+/// For cross-year weeks: "Dec 29 – Jan 4, 2027".
 final weekLabelProvider = Provider<String>((ref) {
-  final offset = ref.watch(weekOffsetProvider);
-  if (offset == 0) return 'This week';
-  if (offset == 1) return 'Next week';
-  if (offset == -1) return 'Last week';
-  if (offset > 0) return '$offset weeks ahead';
-  return '${offset.abs()} weeks ago';
+  final weekStart = ref.watch(weekStartProvider);
+  final weekEnd = weekStart.add(const Duration(days: 6));
+
+  if (weekStart.month == weekEnd.month) {
+    final month = DateFormat('MMMM').format(weekStart);
+    return '$month ${weekStart.day}–${weekEnd.day}';
+  } else if (weekStart.year == weekEnd.year) {
+    return '${DateFormat('MMMM d').format(weekStart)} – ${DateFormat('MMMM d').format(weekEnd)}';
+  } else {
+    // Cross-year week (e.g. Dec 29 – Jan 4)
+    return '${DateFormat('MMM d').format(weekStart)} – ${DateFormat('MMM d, y').format(weekEnd)}';
+  }
 });
 
 /// All tasks for the current viewed week (Monday–Sunday), as a reactive stream.
