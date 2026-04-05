@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../profile/screens/profile_screen.dart';
 import 'nav_destination.dart';
 
@@ -57,18 +58,40 @@ class _MobileAppBar extends ConsumerWidget implements PreferredSizeWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
-          const Spacer(),
-          const Text(
-            'GOALDEN',
-            style: TextStyle(
-              fontFamily: AppTypography.displayFont,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.golden,
-              letterSpacing: 2,
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'GOALDEN',
+                    style: TextStyle(
+                      fontFamily: AppTypography.displayFont,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.golden,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  // Offline indicator
+                  Builder(builder: (context) {
+                    final isOnline =
+                        ref.watch(isOnlineProvider).valueOrNull ?? true;
+                    if (isOnline) return const SizedBox.shrink();
+                    return const Text(
+                      'Offline',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 9,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.5,
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
-          const Spacer(),
           PopupMenuButton<_SettingsAction>(
             icon: const Icon(Icons.settings_outlined, color: AppColors.textSecondary, size: 22),
             color: AppColors.surface,
