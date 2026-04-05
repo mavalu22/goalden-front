@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -70,6 +71,73 @@ class _TaskTileState extends ConsumerState<TaskTile>
     _checkController
       ..reset()
       ..forward();
+  }
+
+  bool get _isDesktop =>
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  Future<void> _showContextMenu(TapDownDetails details) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(
+          details.globalPosition.dx, details.globalPosition.dy, 0, 0),
+      Offset.zero & overlay.size,
+    );
+
+    final result = await showMenu<String>(
+      context: context,
+      position: position,
+      color: AppColors.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      elevation: 8,
+      items: [
+        const PopupMenuItem(
+          value: 'edit',
+          child: _ContextMenuItem(
+              icon: Icons.edit_outlined, label: 'Edit'),
+        ),
+        const PopupMenuItem(
+          value: 'postpone',
+          child: _ContextMenuItem(
+              icon: Icons.arrow_forward, label: 'Postpone'),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: _ContextMenuItem(
+              icon: Icons.delete_outline,
+              label: 'Delete',
+              color: AppColors.error),
+        ),
+      ],
+    );
+
+    if (!mounted) return;
+    switch (result) {
+      case 'edit':
+        showTaskEditForm(context, task: widget.task);
+      case 'postpone':
+        _postpone();
+      case 'delete':
+        final dr = await showDeleteConfirmation(context, widget.task);
+        if (mounted) _handleDeleteResult(dr);
+    }
+  }
+
+  Future<void> _postpone() async {
+    final picked = await showPostponeSheet(context);
+    if (picked != null && mounted) {
+      ref.read(taskActionsProvider.notifier).updateTask(
+            widget.task.copyWith(
+              date: DateTime(picked.year, picked.month, picked.day),
+            ),
+          );
+    }
   }
 
   void _handleDeleteResult(DeleteResult result) {
@@ -207,6 +275,8 @@ class _TaskTileState extends ConsumerState<TaskTile>
               onTapDown: (_) => setState(() => _rowPressed = true),
               onTapUp: (_) => setState(() => _rowPressed = false),
               onTapCancel: () => setState(() => _rowPressed = false),
+              onSecondaryTapDown:
+                  _isDesktop ? _showContextMenu : null,
               behavior: HitTestBehavior.opaque,
               child: AnimatedScale(
                 scale: _rowPressed ? 0.98 : 1.0,
@@ -219,9 +289,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
                     vertical: AppSpacing.lg,
                   ),
                   decoration: BoxDecoration(
-                    color: _rowHovered
-                        ? AppColors.surfaceElevated
-                        : AppColors.surfaceElevated,
+                    color: AppColors.surfaceElevated,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: _rowHovered
@@ -231,89 +299,161 @@ class _TaskTileState extends ConsumerState<TaskTile>
                               : AppColors.border,
                     ),
                   ),
-                  child: Row(
+                  child: Stack(
                     children: [
-                      // Checkbox — stops tap from propagating to open detail
-                      Pressable(
-                        onTap: () => ref
-                            .read(taskActionsProvider.notifier)
-                            .toggleDone(widget.task),
-                        scaleFactor: 0.88,
-                        child: _buildCheckbox(),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: Align(
-                                key: ValueKey(isCompleted),
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  widget.task.title,
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.bodyFont,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: isCompleted
-                                        ? AppColors.textMuted
-                                        : AppColors.textPrimary,
-                                    decoration: isCompleted
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                    decorationColor: AppColors.textMuted,
+                      // Normal row content
+                      Row(
+                        children: [
+                          // Checkbox — stops tap from propagating to open detail
+                          Pressable(
+                            onTap: () => ref
+                                .read(taskActionsProvider.notifier)
+                                .toggleDone(widget.task),
+                            scaleFactor: 0.88,
+                            child: _buildCheckbox(),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Align(
+                                    key: ValueKey(isCompleted),
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      widget.task.title,
+                                      style: TextStyle(
+                                        fontFamily: AppTypography.bodyFont,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: isCompleted
+                                            ? AppColors.textMuted
+                                            : AppColors.textPrimary,
+                                        decoration: isCompleted
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                        decorationColor: AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (widget.task.startTimeMinutes != null &&
+                                    widget.task.endTimeMinutes != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _formatTimeRange(
+                                      widget.task.startTimeMinutes!,
+                                      widget.task.endTimeMinutes!,
+                                    ),
+                                    style: const TextStyle(
+                                      fontFamily: AppTypography.bodyFont,
+                                      fontSize: 11,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (widget.task.sourceTaskId != null) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            const Icon(
+                              Icons.repeat,
+                              size: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ],
+                          if (isHigh) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            const _HighBadge(),
+                          ],
+                          // Drag handle (hidden on desktop hover when action bar shows)
+                          AnimatedOpacity(
+                            opacity: _isDesktop && _rowHovered ? 0.0 : 1.0,
+                            duration: const Duration(milliseconds: 150),
+                            child: ReorderableDragStartListener(
+                              index: widget.index,
+                              child: const MouseRegion(
+                                cursor: SystemMouseCursors.grab,
+                                child: Padding(
+                                  padding:
+                                      EdgeInsets.symmetric(horizontal: 2),
+                                  child: Icon(
+                                    Icons.drag_handle,
+                                    size: 18,
+                                    color: AppColors.textMuted,
                                   ),
                                 ),
                               ),
                             ),
-                            if (widget.task.startTimeMinutes != null &&
-                                widget.task.endTimeMinutes != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _formatTimeRange(
-                                  widget.task.startTimeMinutes!,
-                                  widget.task.endTimeMinutes!,
-                                ),
-                                style: const TextStyle(
-                                  fontFamily: AppTypography.bodyFont,
-                                  fontSize: 11,
-                                  color: AppColors.textMuted,
+                          ),
+                        ],
+                      ),
+                      // Desktop hover action bar (right-side overlay)
+                      if (_isDesktop)
+                        Positioned.fill(
+                          child: AnimatedOpacity(
+                            opacity: _rowHovered ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 150),
+                            child: IgnorePointer(
+                              ignoring: !_rowHovered,
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.surfaceElevated
+                                            .withValues(alpha: 0.0),
+                                        AppColors.surfaceElevated,
+                                      ],
+                                      stops: const [0.0, 0.4],
+                                    ),
+                                    borderRadius: const BorderRadius.horizontal(
+                                      right: Radius.circular(12),
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.only(
+                                      left: AppSpacing.xxl),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _HoverAction(
+                                        icon: Icons.edit_outlined,
+                                        tooltip: 'Edit',
+                                        onTap: () => showTaskEditForm(
+                                            context,
+                                            task: widget.task),
+                                      ),
+                                      _HoverAction(
+                                        icon: Icons.arrow_forward,
+                                        tooltip: 'Postpone',
+                                        color: AppColors.golden,
+                                        onTap: _postpone,
+                                      ),
+                                      _HoverAction(
+                                        icon: Icons.delete_outline,
+                                        tooltip: 'Delete',
+                                        color: AppColors.error,
+                                        onTap: () async {
+                                          final dr =
+                                              await showDeleteConfirmation(
+                                                  context, widget.task);
+                                          if (mounted) {
+                                            _handleDeleteResult(dr);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (widget.task.sourceTaskId != null) ...[
-                        const SizedBox(width: AppSpacing.xs),
-                        const Icon(
-                          Icons.repeat,
-                          size: 12,
-                          color: AppColors.textMuted,
-                        ),
-                      ],
-                      if (isHigh) ...[
-                        const SizedBox(width: AppSpacing.sm),
-                        const _HighBadge(),
-                      ],
-                      const SizedBox(width: AppSpacing.sm),
-                      ReorderableDragStartListener(
-                        index: widget.index,
-                        child: const MouseRegion(
-                          cursor: SystemMouseCursors.grab,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 2),
-                            child: Icon(
-                              Icons.drag_handle,
-                              size: 18,
-                              color: AppColors.textMuted,
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -351,6 +491,85 @@ class _TaskTileState extends ConsumerState<TaskTile>
               : null,
         ),
       ),
+    );
+  }
+}
+
+class _HoverAction extends StatelessWidget {
+  const _HoverAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.color,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      waitDuration: const Duration(milliseconds: 500),
+      preferBelow: false,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.border),
+      ),
+      textStyle: const TextStyle(
+        fontFamily: AppTypography.bodyFont,
+        fontSize: 12,
+        color: AppColors.textSecondary,
+      ),
+      child: GestureDetector(
+        onTap: onTap,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Icon(
+              icon,
+              size: 16,
+              color: color ?? AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ContextMenuItem extends StatelessWidget {
+  const _ContextMenuItem({
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.textPrimary;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: c),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 13,
+            color: c,
+          ),
+        ),
+      ],
     );
   }
 }
