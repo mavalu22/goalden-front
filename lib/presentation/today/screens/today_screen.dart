@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -329,6 +330,11 @@ class _TaskList extends ConsumerWidget {
 
   final List<Task> tasks;
 
+  bool get _isDesktop =>
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sorted = sortTasks(tasks);
@@ -376,7 +382,7 @@ class _TaskList extends ConsumerWidget {
             );
           },
         ),
-        if (sorted.isNotEmpty)
+        if (sorted.isNotEmpty && !_isDesktop)
           const Padding(
             padding: EdgeInsets.only(
               top: AppSpacing.lg,
