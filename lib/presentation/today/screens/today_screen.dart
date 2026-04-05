@@ -256,35 +256,65 @@ class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
         ),
         const SizedBox(width: AppSpacing.sm),
         // Full form button
-        Pressable(
-          onTap: () => showTaskForm(context),
-          borderRadius: BorderRadius.circular(12),
-          hoverColor: AppColors.golden.withValues(alpha: 0.08),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+        Tooltip(
+          message: 'New task with details',
+          waitDuration: const Duration(milliseconds: 500),
+          preferBelow: false,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColors.border),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+          child: Pressable(
+            onTap: () => showTaskForm(context),
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: AppColors.golden.withValues(alpha: 0.08),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(Icons.post_add,
+                  color: AppColors.textSecondary, size: 20),
             ),
-            child: const Icon(Icons.tune,
-                color: AppColors.textSecondary, size: 20),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        Pressable(
-          onTap: _submit,
-          borderRadius: BorderRadius.circular(12),
-          hoverColor: Colors.white.withValues(alpha: 0.1),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.golden,
-              borderRadius: BorderRadius.circular(12),
+        Tooltip(
+          message: 'Quick add',
+          waitDuration: const Duration(milliseconds: 500),
+          preferBelow: false,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColors.border),
+          ),
+          textStyle: const TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+          child: Pressable(
+            onTap: _submit,
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: Colors.white.withValues(alpha: 0.1),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.golden,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.add, color: AppColors.background, size: 22),
             ),
-            child: const Icon(Icons.add, color: AppColors.background, size: 22),
           ),
         ),
       ],
