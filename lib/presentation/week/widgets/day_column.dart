@@ -86,7 +86,9 @@ class _DayColumnState extends ConsumerState<DayColumn> {
     final dayNum = widget.date.day.toString();
 
     final borderColor = _isToday ? AppColors.goldenBorder : AppColors.border;
-    final bgColor = _isToday ? AppColors.goldenDim : Colors.transparent;
+    final bgColor = _isToday
+        ? AppColors.golden.withValues(alpha: 0.12)
+        : Colors.transparent;
     final borderWidth = _isToday ? 1.5 : 1.0;
 
     return Container(
@@ -282,11 +284,12 @@ class _ProgressCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ratio = total > 0 ? completed / total : 0.0;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '$completed',
+          '$completed/$total',
           style: TextStyle(
             fontFamily: AppTypography.bodyFont,
             fontSize: 11,
@@ -294,12 +297,17 @@ class _ProgressCounter extends StatelessWidget {
             color: completed > 0 ? AppColors.golden : AppColors.textMuted,
           ),
         ),
-        Text(
-          ' / $total',
-          style: const TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 11,
-            color: AppColors.textMuted,
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 28,
+          height: 3,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: ratio,
+              backgroundColor: AppColors.border,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.golden),
+            ),
           ),
         ),
       ],
@@ -322,88 +330,98 @@ class _ColumnTaskRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: 3,
-      ),
-      child: Row(
-        children: [
-          Pressable(
-            onTap: isPast
-                ? null
-                : () =>
-                    ref.read(taskActionsProvider.notifier).toggleDone(task),
-            scaleFactor: 0.88,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: task.done ? AppColors.golden : Colors.transparent,
-                border: Border.all(
-                  color: task.done
-                      ? AppColors.golden
-                      : isPast
-                          ? AppColors.textMuted
-                          : AppColors.textSecondary,
-                  width: 1.5,
-                ),
-              ),
-              child: task.done
-                  ? const Icon(
-                      Icons.check,
-                      size: 10,
-                      color: AppColors.background,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+    final isHigh = task.priority == TaskPriority.high && !task.done;
+    final row = AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: task.done ? 0.4 : 1.0,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 3,
+        ),
+        child: Row(
+          children: [
+            Pressable(
               onTap: isPast
                   ? null
-                  : () => showTaskEditForm(context, task: task),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    task.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 12,
-                      color: task.done
-                          ? AppColors.textMuted
-                          : AppColors.textPrimary,
-                      decoration:
-                          task.done ? TextDecoration.lineThrough : null,
-                      decorationColor: AppColors.textMuted,
-                    ),
+                  : () =>
+                      ref.read(taskActionsProvider.notifier).toggleDone(task),
+              scaleFactor: 0.88,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: task.done ? AppColors.golden : Colors.transparent,
+                  border: Border.all(
+                    color: task.done
+                        ? AppColors.golden
+                        : isPast
+                            ? AppColors.textMuted
+                            : AppColors.textSecondary,
+                    width: 1.5,
                   ),
-                  if (task.startTimeMinutes != null &&
-                      task.endTimeMinutes != null) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      _shortTimeRange(
-                          task.startTimeMinutes!, task.endTimeMinutes!),
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 10,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
+                child: task.done
+                    ? const Icon(
+                        Icons.check,
+                        size: 10,
+                        color: AppColors.background,
+                      )
+                    : null,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            if (task.startTimeMinutes != null &&
+                task.endTimeMinutes != null) ...[
+              Text(
+                _compactTimeRange(
+                    task.startTimeMinutes!, task.endTimeMinutes!),
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 9,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: isPast
+                    ? null
+                    : () => showTaskEditForm(context, task: task),
+                child: Text(
+                  task.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 12,
+                    color: task.done
+                        ? AppColors.textMuted
+                        : AppColors.textPrimary,
+                    decoration: task.done ? TextDecoration.lineThrough : null,
+                    decorationColor: AppColors.textMuted,
+                    decorationThickness: task.done ? 2.0 : null,
+                  ),
+                ),
+              ),
+            ),
+            if (isHigh) ...[
+              const SizedBox(width: 4),
+              Container(
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                  color: AppColors.golden,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
 
@@ -441,19 +459,19 @@ class _ColumnTaskRow extends ConsumerWidget {
     );
   }
 
-  static String _shortTimeRange(int startMin, int endMin) {
+  static String _compactTimeRange(int startMin, int endMin) {
     String fmt(int mins) {
       final h = mins ~/ 60;
       final m = mins % 60;
       final h12 = h % 12 == 0 ? 12 : h % 12;
       return m == 0 ? '$h12' : '$h12:${m.toString().padLeft(2, '0')}';
     }
-    final startPeriod = startMin < 720 ? 'AM' : 'PM';
-    final endPeriod = endMin < 720 ? 'AM' : 'PM';
+    final startPeriod = startMin < 720 ? 'a' : 'p';
+    final endPeriod = endMin < 720 ? 'a' : 'p';
     if (startPeriod == endPeriod) {
-      return '${fmt(startMin)}–${fmt(endMin)} $endPeriod';
+      return '${fmt(startMin)}–${fmt(endMin)}$endPeriod';
     }
-    return '${fmt(startMin)} $startPeriod–${fmt(endMin)} $endPeriod';
+    return '${fmt(startMin)}$startPeriod–${fmt(endMin)}$endPeriod';
   }
 }
 

@@ -85,7 +85,9 @@ class _DayCardState extends ConsumerState<DayCard> {
     final dayName = _isToday ? 'Today' : DateFormat('EEEE').format(widget.date);
 
     final borderColor = _isToday ? AppColors.goldenBorder : AppColors.border;
-    final bgColor = _isToday ? AppColors.goldenDim : Colors.transparent;
+    final bgColor = _isToday
+        ? AppColors.golden.withValues(alpha: 0.12)
+        : Colors.transparent;
     final borderWidth = _isToday ? 1.5 : 1.0;
 
     // Show max 3 tasks, then "+N more"
@@ -194,6 +196,11 @@ class _DayCardState extends ConsumerState<DayCard> {
                         ),
                     ],
                   ),
+                  // Divider between header and task list
+                  if (widget.tasks.isNotEmpty || _showQuickAdd) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    const Divider(height: 1, color: AppColors.border),
+                  ],
                   // Task list or empty state
                   if (widget.tasks.isEmpty && !_showQuickAdd)
                     const Padding(
@@ -335,11 +342,12 @@ class _ProgressCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ratio = total > 0 ? completed / total : 0.0;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '$completed',
+          '$completed/$total',
           style: TextStyle(
             fontFamily: AppTypography.bodyFont,
             fontSize: 12,
@@ -347,12 +355,18 @@ class _ProgressCounter extends StatelessWidget {
             color: completed > 0 ? AppColors.golden : AppColors.textMuted,
           ),
         ),
-        Text(
-          ' / $total',
-          style: const TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 12,
-            color: AppColors.textMuted,
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 28,
+          height: 3,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: ratio,
+              backgroundColor: AppColors.border,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.golden),
+            ),
           ),
         ),
       ],
@@ -375,86 +389,104 @@ class _TaskRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          // Checkbox
-          Pressable(
-            onTap: isPast
-                ? null
-                : () => ref.read(taskActionsProvider.notifier).toggleDone(task),
-            scaleFactor: 0.88,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: task.done ? AppColors.golden : Colors.transparent,
-                border: Border.all(
-                  color: task.done
-                      ? AppColors.golden
-                      : isPast
-                          ? AppColors.textMuted
-                          : AppColors.textSecondary,
-                  width: 1.5,
-                ),
-              ),
-              child: task.done
-                  ? const Icon(
-                      Icons.check,
-                      size: 11,
-                      color: AppColors.background,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          // Title + optional time — tappable to open detail
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+    final isHigh = task.priority == TaskPriority.high && !task.done;
+    final row = AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: task.done ? 0.4 : 1.0,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          children: [
+            // Checkbox
+            Pressable(
               onTap: isPast
                   ? null
-                  : () => showTaskEditForm(context, task: task),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    task.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 13,
-                      color: task.done
-                          ? AppColors.textMuted
-                          : AppColors.textPrimary,
-                      decoration:
-                          task.done ? TextDecoration.lineThrough : null,
-                      decorationColor: AppColors.textMuted,
-                    ),
+                  : () =>
+                      ref.read(taskActionsProvider.notifier).toggleDone(task),
+              scaleFactor: 0.88,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: task.done ? AppColors.golden : Colors.transparent,
+                  border: Border.all(
+                    color: task.done
+                        ? AppColors.golden
+                        : isPast
+                            ? AppColors.textMuted
+                            : AppColors.textSecondary,
+                    width: 1.5,
                   ),
-                  if (task.startTimeMinutes != null &&
-                      task.endTimeMinutes != null) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      _shortTimeRange(
-                          task.startTimeMinutes!, task.endTimeMinutes!),
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 10,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
+                child: task.done
+                    ? const Icon(
+                        Icons.check,
+                        size: 11,
+                        color: AppColors.background,
+                      )
+                    : null,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            // Title + optional time — tappable to open detail
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: isPast
+                    ? null
+                    : () => showTaskEditForm(context, task: task),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      task.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 13,
+                        color: task.done
+                            ? AppColors.textMuted
+                            : AppColors.textPrimary,
+                        decoration:
+                            task.done ? TextDecoration.lineThrough : null,
+                        decorationColor: AppColors.textMuted,
+                        decorationThickness: task.done ? 2.0 : null,
+                      ),
+                    ),
+                    if (task.startTimeMinutes != null &&
+                        task.endTimeMinutes != null) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        _shortTimeRange(
+                            task.startTimeMinutes!, task.endTimeMinutes!),
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 10,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            if (isHigh) ...[
+              const SizedBox(width: AppSpacing.xs),
+              Container(
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                  color: AppColors.golden,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
 
