@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
@@ -171,7 +172,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
     final isCompleted = widget.task.done;
     final isHigh = widget.task.priority == TaskPriority.high && !isCompleted;
 
-    return ClipRect(
+    final tile = ClipRect(
       child: Slidable(
         key: ValueKey(widget.task.id),
         // Swipe right → postpone
@@ -463,6 +464,15 @@ class _TaskTileState extends ConsumerState<TaskTile>
         ),
       ),
     );
+
+    // Brief golden shimmer on first creation (keyed by task id so only runs once per task).
+    return tile
+        .animate()
+        .shimmer(
+          delay: 50.ms,
+          duration: 350.ms,
+          color: AppColors.golden.withValues(alpha: 0.2),
+        );
   }
 
   Widget _buildCheckbox() {

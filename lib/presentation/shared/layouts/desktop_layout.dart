@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../profile/screens/profile_screen.dart';
 import 'nav_destination.dart';
 
@@ -127,6 +128,8 @@ class _Sidebar extends ConsumerWidget {
             ),
           ),
 
+          // Offline indicator
+          _OfflineIndicator(ref: ref),
           // User profile + settings
           _AccountMenu(context: context, ref: ref),
         ],
@@ -193,6 +196,46 @@ class _SidebarNavItem extends StatelessWidget {
 }
 
 enum _SettingsAction { profile, logout }
+
+// ─── Offline indicator ────────────────────────────────────────────────────────
+
+class _OfflineIndicator extends StatelessWidget {
+  const _OfflineIndicator({required this.ref});
+
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider).valueOrNull ?? true;
+    if (isOnline) return const SizedBox.shrink();
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.wifi_off_outlined,
+            size: 12,
+            color: AppColors.textMuted,
+          ),
+          SizedBox(width: 5),
+          Text(
+            'Offline',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 11,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ─── Account menu ─────────────────────────────────────────────────────────────
 

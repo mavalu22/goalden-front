@@ -105,6 +105,9 @@ class _MobileWeekView extends ConsumerWidget {
         Expanded(
           child: tasksAsync.when(
             data: (tasks) {
+              if (tasks.isEmpty) {
+                return const _WeekEmptyState();
+              }
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                 itemCount: 7,
@@ -164,6 +167,9 @@ class _DesktopWeekView extends ConsumerWidget {
         Expanded(
           child: tasksAsync.when(
             data: (tasks) {
+              if (tasks.isEmpty) {
+                return const _WeekEmptyState();
+              }
               return Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.lg,
@@ -209,6 +215,56 @@ class _DesktopWeekView extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+class _WeekEmptyState extends StatelessWidget {
+  const _WeekEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Icon(
+              Icons.calendar_today_outlined,
+              color: AppColors.textMuted,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const Text(
+            'Nothing planned yet.',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          const Text(
+            'Tap a day to start planning your week.',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 13,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

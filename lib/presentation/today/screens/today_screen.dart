@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -100,7 +101,7 @@ class _MobileTodayView extends ConsumerWidget {
                       _TaskList(tasks: tasks),
                     ],
                   ),
-            loading: () => const SizedBox.shrink(),
+            loading: () => const _TaskListSkeleton(),
             error: (_, __) => const _EmptyState(),
           ),
         ),
@@ -168,7 +169,7 @@ class _DesktopTodayView extends ConsumerWidget {
             data: (tasks) => tasks.isEmpty
                 ? const _EmptyState()
                 : _TaskList(tasks: tasks),
-            loading: () => const SizedBox.shrink(),
+            loading: () => const _TaskListSkeleton(),
             error: (_, __) => const _EmptyState(),
           ),
         ],
@@ -405,6 +406,76 @@ class _TaskList extends ConsumerWidget {
   }
 }
 
+// ─── Task list skeleton ───────────────────────────────────────────────────────
+
+class _TaskListSkeleton extends StatelessWidget {
+  const _TaskListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) => _SkeletonItem(delay: i * 80)),
+    );
+  }
+}
+
+class _SkeletonItem extends StatelessWidget {
+  const _SkeletonItem({required this.delay});
+
+  final int delay;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.sm,
+      ),
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceElevated,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: AppSpacing.lg),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Container(
+                height: 12,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xl),
+          ],
+        ),
+      )
+          .animate(delay: Duration(milliseconds: delay))
+          .shimmer(
+            duration: const Duration(milliseconds: 1200),
+            color: AppColors.border,
+          ),
+    );
+  }
+}
+
 // ─── Empty state with pending section ────────────────────────────────────────
 
 class _EmptyStateWithPending extends StatelessWidget {
@@ -620,7 +691,7 @@ class _ContextSidebar extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => const SizedBox.shrink(),
+              loading: () => const _TaskListSkeleton(),
               error: (_, __) => const SizedBox.shrink(),
             ),
 

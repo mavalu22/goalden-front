@@ -211,7 +211,7 @@ class _DesktopProfileView extends StatelessWidget {
                                 Expanded(
                                   child: _ProfileTextField(
                                     controller: nameController,
-                                    hint: 'Your name',
+                                    hint: 'Add your name',
                                     onSubmitted: (_) => onSaveName(),
                                   ),
                                 ),
@@ -440,7 +440,7 @@ class _MobileProfileView extends StatelessWidget {
                 Expanded(
                   child: _ProfileTextField(
                     controller: nameController,
-                    hint: 'Your name',
+                    hint: 'Add your name',
                     onSubmitted: (_) => onSaveName(),
                   ),
                 ),
