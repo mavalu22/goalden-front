@@ -155,22 +155,25 @@ class _TaskTileState extends ConsumerState<TaskTile>
             borderRadius: const BorderRadius.horizontal(
               left: Radius.circular(12),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.arrow_forward, size: 18, color: AppColors.golden),
-                SizedBox(height: 4),
-                Text(
-                  'Postpone',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.golden,
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.arrow_forward, size: 18, color: AppColors.golden),
+                  SizedBox(height: 4),
+                  Text(
+                    'Postpone',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.golden,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -198,22 +201,25 @@ class _TaskTileState extends ConsumerState<TaskTile>
             borderRadius: const BorderRadius.horizontal(
               right: Radius.circular(12),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.delete_outline, size: 18, color: Colors.white),
-                SizedBox(height: 4),
-                Text(
-                  'Remove',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.delete_outline, size: 18, color: Colors.white),
+                  SizedBox(height: 4),
+                  Text(
+                    'Remove',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
