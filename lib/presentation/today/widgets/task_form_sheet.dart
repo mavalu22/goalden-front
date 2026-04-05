@@ -671,6 +671,26 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         ],
         const SizedBox(height: AppSpacing.xxxl),
 
+        // Metadata (edit mode only)
+        if (_isEditing) ...[
+          const Divider(color: AppColors.borderSubtle, height: 1),
+          const SizedBox(height: AppSpacing.lg),
+          _MetaRow(
+            label: 'Created',
+            value: DateFormat('MMM d, yyyy · h:mm a')
+                .format(widget.task!.createdAt),
+          ),
+          if (widget.task!.completedAt != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _MetaRow(
+              label: 'Completed',
+              value: DateFormat('MMM d, yyyy · h:mm a')
+                  .format(widget.task!.completedAt!),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.xl),
+        ],
+
         // Save/Create button
         Pressable(
           onTap: _isSubmitting ? null : _submit,
@@ -972,6 +992,40 @@ class _DayOfWeekPicker extends StatelessWidget {
               ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+// ─── Metadata row ─────────────────────────────────────────────────────────────
+
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          '$label:',
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 12,
+            color: AppColors.textMuted,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
       ],
     );
   }
