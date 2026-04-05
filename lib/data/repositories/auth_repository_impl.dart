@@ -19,7 +19,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Stream<AppUser?> get authStateChanges {
     return _supabase.auth.onAuthStateChange.map((event) {
       return _mapUser(event.session?.user);
-    });
+    }).handleError((_) {});
   }
 
   @override
@@ -140,15 +140,18 @@ class AuthRepositoryImpl implements AuthRepository {
 
   AppUser? _mapUser(User? user) {
     if (user == null) return null;
-    final provider = switch (user.appMetadata['provider'] as String?) {
+    final providerRaw = user.appMetadata['provider'];
+    final provider = switch (providerRaw is String ? providerRaw : null) {
       'google' => AuthProvider.google,
       'apple' => AuthProvider.apple,
       'email' => AuthProvider.email,
       _ => AuthProvider.unknown,
     };
-    final displayName =
-        user.userMetadata?['display_name'] as String? ??
-        user.userMetadata?['full_name'] as String?;
+    final meta = user.userMetadata;
+    final displayName = (meta?['display_name'] is String
+            ? meta!['display_name'] as String
+            : null) ??
+        (meta?['full_name'] is String ? meta!['full_name'] as String : null);
     return AppUser(
       id: user.id,
       email: user.email,
