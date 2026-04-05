@@ -290,6 +290,7 @@ class _TaskList extends ConsumerWidget {
         ReorderableListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           proxyDecorator: (child, index, animation) {
             return AnimatedBuilder(
