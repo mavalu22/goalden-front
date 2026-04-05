@@ -220,8 +220,8 @@ class _TaskTileState extends ConsumerState<TaskTile>
                   ),
                   decoration: BoxDecoration(
                     color: _rowHovered
-                        ? AppColors.surface.withValues(alpha: 0.85)
-                        : AppColors.surface,
+                        ? AppColors.surfaceElevated
+                        : AppColors.surfaceElevated,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: _rowHovered
