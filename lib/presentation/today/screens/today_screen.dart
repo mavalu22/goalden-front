@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart' show Task;
 import '../providers/today_provider.dart';
+import '../../week/providers/week_provider.dart' show tasksForDateProvider;
 import '../utils/daily_quote.dart';
 import '../utils/task_sort.dart';
 import '../widgets/pending_section.dart';
@@ -107,6 +108,11 @@ class _MobileTodayView extends ConsumerWidget {
   }
 }
 
+/// Viewport width at which the sidebar appears.
+const _sidebarBreakpoint = 1200.0;
+/// Width of the contextual sidebar.
+const _sidebarWidth = 240.0;
+
 // ─── Desktop ─────────────────────────────────────────────────────────────────
 
 class _DesktopTodayView extends ConsumerWidget {
@@ -117,8 +123,10 @@ class _DesktopTodayView extends ConsumerWidget {
     final now = DateTime.now();
     final dateLabel = DateFormat('EEEE, MMMM d').format(now);
     final tasksAsync = ref.watch(todayTasksProvider);
+    final viewportWidth = MediaQuery.of(context).size.width;
+    final showSidebar = viewportWidth >= _sidebarBreakpoint;
 
-    return SingleChildScrollView(
+    final mainContent = SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxxl,
         AppSpacing.xxl,
@@ -164,6 +172,16 @@ class _DesktopTodayView extends ConsumerWidget {
           ),
         ],
       ),
+    );
+
+    if (!showSidebar) return mainContent;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: mainContent),
+        const _ContextSidebar(),
+      ],
     );
   }
 }
@@ -477,6 +495,259 @@ class _QuoteCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Context sidebar (desktop, > 1200px) ──────────────────────────────────────
+
+class _ContextSidebar extends ConsumerWidget {
+  const _ContextSidebar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final todayTasksAsync = ref.watch(todayTasksProvider);
+    final pendingAsync = ref.watch(pendingTasksProvider);
+
+    // Upcoming: next 3 days' task counts via tasksForDateProvider family
+    final upcoming = [
+      for (int i = 1; i <= 3; i++) today.add(Duration(days: i)),
+    ];
+
+    return SizedBox(
+      width: _sidebarWidth,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          0,
+          AppSpacing.xxl,
+          AppSpacing.xxl,
+          AppSpacing.xxl,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Progress ──────────────────────────────────────────────────────
+            _SidebarCard(
+              children: [
+                const _SidebarSectionLabel('TODAY'),
+                const SizedBox(height: AppSpacing.sm),
+                todayTasksAsync.when(
+                  data: (tasks) {
+                    final done = tasks.where((t) => t.done).length;
+                    final total = tasks.length;
+                    return _ProgressBlock(done: done, total: total);
+                  },
+                  loading: () => const _SidebarPlaceholder(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+
+            // ── Overdue ───────────────────────────────────────────────────────
+            pendingAsync.when(
+              data: (pending) {
+                if (pending.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  children: [
+                    _SidebarCard(
+                      children: [
+                        const _SidebarSectionLabel('OVERDUE'),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 14,
+                              color: AppColors.error,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              '${pending.length} task${pending.length == 1 ? '' : 's'} pending',
+                              style: const TextStyle(
+                                fontFamily: AppTypography.bodyFont,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
+            // ── Upcoming ──────────────────────────────────────────────────────
+            _SidebarCard(
+              children: [
+                const _SidebarSectionLabel('UPCOMING'),
+                const SizedBox(height: AppSpacing.sm),
+                for (final day in upcoming) ...[
+                  _UpcomingDayRow(date: day),
+                  if (day != upcoming.last) const SizedBox(height: AppSpacing.xs),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarCard extends StatelessWidget {
+  const _SidebarCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _SidebarSectionLabel extends StatelessWidget {
+  const _SidebarSectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        fontFamily: AppTypography.bodyFont,
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textMuted,
+        letterSpacing: 1.0,
+      ),
+    );
+  }
+}
+
+class _ProgressBlock extends StatelessWidget {
+  const _ProgressBlock({required this.done, required this.total});
+
+  final int done;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = total == 0 ? 0.0 : done / total;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$done / $total completed',
+          style: const TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: fraction,
+            minHeight: 4,
+            backgroundColor: AppColors.border,
+            valueColor: const AlwaysStoppedAnimation(AppColors.golden),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UpcomingDayRow extends ConsumerWidget {
+  const _UpcomingDayRow({required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(
+      tasksForDateProvider(date),
+    );
+    final label = _dayLabel(date);
+
+    return tasksAsync.when(
+      data: (tasks) {
+        final count = tasks.length;
+        return Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            Text(
+              count == 0 ? '—' : '$count task${count == 1 ? '' : 's'}',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 12,
+                color: count == 0 ? AppColors.textMuted : AppColors.textPrimary,
+                fontWeight: count > 0 ? FontWeight.w500 : FontWeight.normal,
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const _SidebarPlaceholder(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  static String _dayLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final diff = date.difference(today).inDays;
+    if (diff == 1) return 'Tomorrow';
+    return DateFormat('EEEE').format(date);
+  }
+}
+
+class _SidebarPlaceholder extends StatelessWidget {
+  const _SidebarPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 14,
+      decoration: BoxDecoration(
+        color: AppColors.border,
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
