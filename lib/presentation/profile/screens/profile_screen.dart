@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -50,6 +52,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         .sendPasswordResetEmail(email);
   }
 
+  bool get _isDesktop =>
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
   @override
   Widget build(BuildContext context) {
     // Pop to root when the user signs out so _AuthGate shows LoginScreen.
@@ -66,6 +73,327 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final user = ref.watch(authUserProvider).valueOrNull;
     final isEmailUser = user?.authProvider == AuthProvider.email;
 
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= AppConstants.mobileBreakpoint || _isDesktop) {
+          return _DesktopProfileView(
+            nameController: _nameController,
+            nameSaving: _nameSaving,
+            resetSent: _resetSent,
+            user: user,
+            isEmailUser: isEmailUser,
+            onSaveName: _saveName,
+            onSendReset: () => _sendPasswordReset(user?.email),
+            onLogout: () => ref.read(authActionsProvider.notifier).signOut(),
+          );
+        }
+        return _MobileProfileView(
+          nameController: _nameController,
+          nameSaving: _nameSaving,
+          resetSent: _resetSent,
+          user: user,
+          isEmailUser: isEmailUser,
+          onSaveName: _saveName,
+          onSendReset: () => _sendPasswordReset(user?.email),
+          onLogout: () => ref.read(authActionsProvider.notifier).signOut(),
+        );
+      },
+    );
+  }
+}
+
+// ─── Desktop view ─────────────────────────────────────────────────────────────
+
+class _DesktopProfileView extends StatelessWidget {
+  const _DesktopProfileView({
+    required this.nameController,
+    required this.nameSaving,
+    required this.resetSent,
+    required this.user,
+    required this.isEmailUser,
+    required this.onSaveName,
+    required this.onSendReset,
+    required this.onLogout,
+  });
+
+  final TextEditingController nameController;
+  final bool nameSaving;
+  final bool resetSent;
+  final AppUser? user;
+  final bool isEmailUser;
+  final VoidCallback onSaveName;
+  final VoidCallback onSendReset;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // Page header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.xl,
+              AppSpacing.xxl,
+              AppSpacing.xl,
+            ),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontFamily: AppTypography.displayFont,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Manage your account',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Scrollable content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xxl,
+                vertical: AppSpacing.xxxl,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Account section
+                        _DesktopSection(
+                          title: 'Account',
+                          children: [
+                            _FieldRow(label: 'Display name', child: Row(
+                              children: [
+                                Expanded(
+                                  child: _ProfileTextField(
+                                    controller: nameController,
+                                    hint: 'Your name',
+                                    onSubmitted: (_) => onSaveName(),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                _SaveButton(
+                                  loading: nameSaving,
+                                  onTap: onSaveName,
+                                ),
+                              ],
+                            )),
+                            const SizedBox(height: AppSpacing.md),
+                            _FieldRow(
+                              label: 'Email',
+                              child: _ReadOnlyField(value: user?.email ?? '—'),
+                            ),
+                          ],
+                        ),
+
+                        if (isEmailUser) ...[
+                          const Divider(height: 1, color: AppColors.border),
+                          // Security section
+                          _DesktopSection(
+                            title: 'Security',
+                            children: [
+                              _FieldRow(
+                                label: 'Password',
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const _ReadOnlyField(value: '••••••••'),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    resetSent
+                                        ? const Text(
+                                            'Password reset email sent. Check your inbox.',
+                                            style: TextStyle(
+                                              fontFamily: AppTypography.bodyFont,
+                                              fontSize: 13,
+                                              color: AppColors.golden,
+                                            ),
+                                          )
+                                        : GestureDetector(
+                                            onTap: onSendReset,
+                                            child: const Text(
+                                              'Change password',
+                                              style: TextStyle(
+                                                fontFamily:
+                                                    AppTypography.bodyFont,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                                color: AppColors.golden,
+                                                decoration:
+                                                    TextDecoration.underline,
+                                                decorationColor: AppColors.golden,
+                                              ),
+                                            ),
+                                          ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        const Divider(height: 1, color: AppColors.border),
+
+                        // Danger zone
+                        _DesktopSection(
+                          title: 'Danger zone',
+                          titleColor: AppColors.error,
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: _LogoutButton(onTap: onLogout),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopSection extends StatelessWidget {
+  const _DesktopSection({
+    required this.title,
+    required this.children,
+    this.titleColor,
+  });
+
+  final String title;
+  final List<Widget> children;
+  final Color? titleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: titleColor ?? AppColors.textMuted,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldRow extends StatelessWidget {
+  const _FieldRow({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.lg),
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
+// ─── Mobile view ──────────────────────────────────────────────────────────────
+
+class _MobileProfileView extends StatelessWidget {
+  const _MobileProfileView({
+    required this.nameController,
+    required this.nameSaving,
+    required this.resetSent,
+    required this.user,
+    required this.isEmailUser,
+    required this.onSaveName,
+    required this.onSendReset,
+    required this.onLogout,
+  });
+
+  final TextEditingController nameController;
+  final bool nameSaving;
+  final bool resetSent;
+  final AppUser? user;
+  final bool isEmailUser;
+  final VoidCallback onSaveName;
+  final VoidCallback onSendReset;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -99,84 +427,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.xl,
         ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Account section
+            const _MobileSectionHeader(title: 'Account'),
+            const SizedBox(height: AppSpacing.sm),
+            const _SectionLabel(label: 'Display Name'),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
               children: [
-                // ── Display name ──────────────────────────────────────────────
-                const _SectionLabel(label: 'Display Name'),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ProfileTextField(
-                        controller: _nameController,
-                        hint: 'Your name',
-                        onSubmitted: (_) => _saveName(),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    _SaveButton(
-                      loading: _nameSaving,
-                      onTap: _saveName,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.xl),
-
-                // ── Email ────────────────────���────────────────────────────────
-                const _SectionLabel(label: 'Email'),
-                const SizedBox(height: AppSpacing.sm),
-                _ReadOnlyField(value: user?.email ?? '—'),
-
-                // ── Password (email users only) ───────────────────────────────
-                if (isEmailUser) ...[
-                  const SizedBox(height: AppSpacing.xl),
-                  const _SectionLabel(label: 'Password'),
-                  const SizedBox(height: AppSpacing.sm),
-                  const _ReadOnlyField(value: '••••••••'),
-                  const SizedBox(height: AppSpacing.sm),
-                  _resetSent
-                      ? const Text(
-                          'Password reset email sent. Check your inbox.',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFont,
-                            fontSize: 13,
-                            color: AppColors.golden,
-                          ),
-                        )
-                      : GestureDetector(
-                          onTap: () => _sendPasswordReset(user?.email),
-                          child: const Text(
-                            'Change password',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFont,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.golden,
-                              decoration: TextDecoration.underline,
-                              decorationColor: AppColors.golden,
-                            ),
-                          ),
-                        ),
-                ],
-
-                const SizedBox(height: AppSpacing.xxxl),
-
-                // ── Log out ───────────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  child: _LogoutButton(
-                    onTap: () =>
-                        ref.read(authActionsProvider.notifier).signOut(),
+                Expanded(
+                  child: _ProfileTextField(
+                    controller: nameController,
+                    hint: 'Your name',
+                    onSubmitted: (_) => onSaveName(),
                   ),
                 ),
+                const SizedBox(width: AppSpacing.sm),
+                _SaveButton(loading: nameSaving, onTap: onSaveName),
               ],
             ),
-          ),
+            const SizedBox(height: AppSpacing.lg),
+            const _SectionLabel(label: 'Email'),
+            const SizedBox(height: AppSpacing.sm),
+            _ReadOnlyField(value: user?.email ?? '—'),
+
+            if (isEmailUser) ...[
+              const SizedBox(height: AppSpacing.xxxl),
+              const Divider(height: 1, color: AppColors.border),
+              const SizedBox(height: AppSpacing.xl),
+              // Security section
+              const _MobileSectionHeader(title: 'Security'),
+              const SizedBox(height: AppSpacing.sm),
+              const _SectionLabel(label: 'Password'),
+              const SizedBox(height: AppSpacing.sm),
+              const _ReadOnlyField(value: '••••••••'),
+              const SizedBox(height: AppSpacing.sm),
+              resetSent
+                  ? const Text(
+                      'Password reset email sent. Check your inbox.',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 13,
+                        color: AppColors.golden,
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: onSendReset,
+                      child: const Text(
+                        'Change password',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.golden,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.golden,
+                        ),
+                      ),
+                    ),
+            ],
+
+            const SizedBox(height: AppSpacing.xxxl),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: AppSpacing.xl),
+
+            // Danger zone section
+            const _MobileSectionHeader(title: 'Danger zone', color: AppColors.error),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: _LogoutButton(onTap: onLogout),
+            ),
+          ],
         ),
       ),
     );
@@ -184,6 +508,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 }
 
 // ── Sub-widgets ────────────────────────────────────────────────────────────────
+
+class _MobileSectionHeader extends StatelessWidget {
+  const _MobileSectionHeader({required this.title, this.color});
+
+  final String title;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontFamily: AppTypography.bodyFont,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: color ?? AppColors.textPrimary,
+      ),
+    );
+  }
+}
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.label});
@@ -221,7 +565,7 @@ class _ProfileTextField extends StatelessWidget {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.border),
       ),
