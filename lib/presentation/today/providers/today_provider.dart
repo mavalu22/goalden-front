@@ -6,9 +6,6 @@ import '../../../providers/database_provider.dart';
 
 const _uuid = Uuid();
 
-/// Tracks the id of the currently expanded task tile (null = none).
-final expandedTaskIdProvider = StateProvider<String?>((ref) => null);
-
 /// Reactive stream of tasks for today.
 /// Also triggers recurrence generation for today on first load.
 final todayTasksProvider = StreamProvider<List<Task>>((ref) async* {

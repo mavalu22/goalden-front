@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../../shared/widgets/pressable.dart';
 import '../../today/providers/today_provider.dart';
+import '../../today/widgets/task_form_sheet.dart';
 import '../screens/day_detail_screen.dart';
 
 class DayCard extends ConsumerStatefulWidget {
@@ -410,39 +411,47 @@ class _TaskRow extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          // Title + optional time
+          // Title + optional time — tappable to open detail
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  task.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 13,
-                    color:
-                        task.done ? AppColors.textMuted : AppColors.textPrimary,
-                    decoration: task.done ? TextDecoration.lineThrough : null,
-                    decorationColor: AppColors.textMuted,
-                  ),
-                ),
-                if (task.startTimeMinutes != null &&
-                    task.endTimeMinutes != null) ...[
-                  const SizedBox(height: 1),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: isPast
+                  ? null
+                  : () => showTaskEditForm(context, task: task),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Text(
-                    _shortTimeRange(
-                        task.startTimeMinutes!, task.endTimeMinutes!),
-                    style: const TextStyle(
+                    task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
                       fontFamily: AppTypography.bodyFont,
-                      fontSize: 10,
-                      color: AppColors.textMuted,
+                      fontSize: 13,
+                      color: task.done
+                          ? AppColors.textMuted
+                          : AppColors.textPrimary,
+                      decoration:
+                          task.done ? TextDecoration.lineThrough : null,
+                      decorationColor: AppColors.textMuted,
                     ),
                   ),
+                  if (task.startTimeMinutes != null &&
+                      task.endTimeMinutes != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      _shortTimeRange(
+                          task.startTimeMinutes!, task.endTimeMinutes!),
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 10,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
