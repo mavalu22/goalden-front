@@ -52,6 +52,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Pop to root when the user signs out so _AuthGate shows LoginScreen.
+    ref.listen<AsyncValue<AppUser?>>(authUserProvider, (_, next) {
+      next.whenOrNull(
+        data: (user) {
+          if (user == null && mounted) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+        },
+      );
+    });
+
     final user = ref.watch(authUserProvider).valueOrNull;
     final isEmailUser = user?.authProvider == AuthProvider.email;
 
