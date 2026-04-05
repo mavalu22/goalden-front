@@ -216,7 +216,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.md,
+                    vertical: AppSpacing.lg,
                   ),
                   decoration: BoxDecoration(
                     color: _rowHovered
@@ -302,12 +302,15 @@ class _TaskTileState extends ConsumerState<TaskTile>
                       const SizedBox(width: AppSpacing.sm),
                       ReorderableDragStartListener(
                         index: widget.index,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 2),
-                          child: Icon(
-                            Icons.drag_handle,
-                            size: 18,
-                            color: AppColors.textMuted,
+                        child: const MouseRegion(
+                          cursor: SystemMouseCursors.grab,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 2),
+                            child: Icon(
+                              Icons.drag_handle,
+                              size: 18,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                         ),
                       ),
