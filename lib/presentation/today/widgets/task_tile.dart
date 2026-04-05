@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../providers/today_provider.dart';
 import 'postpone_sheet.dart';
+import '../../shared/widgets/delete_confirmation_dialog.dart';
 import '../../shared/widgets/pressable.dart';
 import 'task_form_sheet.dart';
 
@@ -85,6 +86,24 @@ class _TaskTileState extends ConsumerState<TaskTile>
       ..forward();
   }
 
+  void _handleDeleteResult(DeleteResult result) {
+    if (result == DeleteResult.cancelled) return;
+    if (result == DeleteResult.allFuture) {
+      // Delete the source task (and all its future instances).
+      final sourceId =
+          widget.task.sourceTaskId ?? widget.task.id;
+      ref.read(taskActionsProvider.notifier).deleteTask(
+            sourceId,
+            isRecurringSource: true,
+          );
+    } else {
+      // Delete only this instance.
+      ref
+          .read(taskActionsProvider.notifier)
+          .deleteTask(widget.task.id, isRecurringSource: false);
+    }
+  }
+
   void _toggleExpanded() {
     final current = ref.read(expandedTaskIdProvider);
     ref.read(expandedTaskIdProvider.notifier).state =
@@ -125,9 +144,6 @@ class _TaskTileState extends ConsumerState<TaskTile>
     final isHigh = widget.task.priority == TaskPriority.high && !isCompleted;
     final expandedId = ref.watch(expandedTaskIdProvider);
     final isExpanded = expandedId == widget.task.id;
-    final isRecurringSource = widget.task.recurrence != TaskRecurrence.none &&
-        widget.task.sourceTaskId == null;
-
     return ClipRect(
       child: Slidable(
       key: ValueKey(widget.task.id),
@@ -178,24 +194,20 @@ class _TaskTileState extends ConsumerState<TaskTile>
           ),
         ],
       ),
-      // Swipe left → remove action
+      // Swipe left → remove action (shows confirmation dialog)
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
         extentRatio: 0.3,
-        dismissible: DismissiblePane(
-          onDismissed: () =>
-              ref.read(taskActionsProvider.notifier).deleteTask(
-                widget.task.id,
-                isRecurringSource: isRecurringSource,
-              ),
-        ),
         children: [
           CustomSlidableAction(
-            onPressed: (_) =>
-                ref.read(taskActionsProvider.notifier).deleteTask(
-                  widget.task.id,
-                  isRecurringSource: isRecurringSource,
-                ),
+            onPressed: (ctx) async {
+              final slidable = Slidable.of(ctx);
+              slidable?.close();
+              final result =
+                  await showDeleteConfirmation(context, widget.task);
+              if (!mounted) return;
+              _handleDeleteResult(result);
+            },
             backgroundColor: AppColors.error,
             foregroundColor: Colors.white,
             borderRadius: const BorderRadius.horizontal(
