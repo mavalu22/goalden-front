@@ -161,7 +161,7 @@ class _DesktopTodayView extends ConsumerWidget {
           const _QuoteCard(),
           const SizedBox(height: AppSpacing.xxl),
           const _QuickTaskInput(hint: 'Pick a task to focus on...'),
-          const SizedBox(height: AppSpacing.xxxl),
+          const SizedBox(height: AppSpacing.lg),
           const PendingSection(),
           tasksAsync.when(
             data: (tasks) => tasks.isEmpty
@@ -447,13 +447,14 @@ class _QuoteCard extends StatelessWidget {
     final quote = getTodayQuote();
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+            color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,9 +462,9 @@ class _QuoteCard extends StatelessWidget {
           Text(
             '❝',
             style: TextStyle(
-              fontSize: 18,
-              color: AppColors.golden.withValues(alpha: 0.35),
-              height: 1.2,
+              fontSize: 14,
+              color: AppColors.golden.withValues(alpha: 0.25),
+              height: 1.3,
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -476,9 +477,9 @@ class _QuoteCard extends StatelessWidget {
                   '"${quote.text}"',
                   style: const TextStyle(
                     fontFamily: AppTypography.displayFont,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontStyle: FontStyle.italic,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textSecondary,
                     height: 1.4,
                   ),
                 ),
