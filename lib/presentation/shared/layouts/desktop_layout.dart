@@ -128,99 +128,7 @@ class _Sidebar extends ConsumerWidget {
           ),
 
           // User profile + settings
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              AppSpacing.xxl,
-            ),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  radius: 14,
-                  backgroundColor: AppColors.surface,
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 16,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                const Expanded(
-                  child: Text(
-                    'Account',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                PopupMenuButton<_SettingsAction>(
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    size: 16,
-                    color: AppColors.textMuted,
-                  ),
-                  padding: EdgeInsets.zero,
-                  color: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.border),
-                  ),
-                  onSelected: (action) {
-                    if (action == _SettingsAction.profile) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
-                        ),
-                      );
-                    } else if (action == _SettingsAction.logout) {
-                      ref.read(authActionsProvider.notifier).signOut();
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: _SettingsAction.profile,
-                      child: Row(
-                        children: [
-                          Icon(Icons.person_outline, size: 16, color: AppColors.textSecondary),
-                          SizedBox(width: AppSpacing.sm),
-                          Text(
-                            'Profile',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFont,
-                              fontSize: 14,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: _SettingsAction.logout,
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout, size: 16, color: AppColors.textSecondary),
-                          SizedBox(width: AppSpacing.sm),
-                          Text(
-                            'Log out',
-                            style: TextStyle(
-                              fontFamily: AppTypography.bodyFont,
-                              fontSize: 14,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          _AccountMenu(context: context, ref: ref),
         ],
       ),
     );
@@ -285,3 +193,239 @@ class _SidebarNavItem extends StatelessWidget {
 }
 
 enum _SettingsAction { profile, logout }
+
+// ─── Account menu ─────────────────────────────────────────────────────────────
+
+class _AccountMenu extends StatefulWidget {
+  const _AccountMenu({required this.context, required this.ref});
+
+  final BuildContext context;
+  final WidgetRef ref;
+
+  @override
+  State<_AccountMenu> createState() => _AccountMenuState();
+}
+
+class _AccountMenuState extends State<_AccountMenu> {
+  bool _hovered = false;
+
+  Future<void> _openMenu() async {
+    final renderBox = context.findRenderObject()! as RenderBox;
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final buttonRect = renderBox.localToGlobal(
+          Offset.zero,
+          ancestor: overlay,
+        ) &
+        renderBox.size;
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(
+        buttonRect.left,
+        buttonRect.top - 8,
+        buttonRect.width,
+        0,
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final user = widget.ref.read(authUserProvider).valueOrNull;
+    final displayName =
+        user?.displayName ?? user?.email?.split('@').firstOrNull ?? 'Account';
+    final email = user?.email;
+
+    final result = await showMenu<_SettingsAction>(
+      context: context,
+      position: position,
+      constraints: const BoxConstraints(minWidth: 240),
+      color: AppColors.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      elevation: 10,
+      items: [
+        // User header — non-clickable
+        PopupMenuItem<_SettingsAction>(
+          enabled: false,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                displayName,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (email != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  email,
+                  style: const TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+        // Profile
+        const PopupMenuItem<_SettingsAction>(
+          value: _SettingsAction.profile,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          mouseCursor: SystemMouseCursors.click,
+          child: _MenuRow(
+            icon: Icons.person_outline,
+            label: 'Profile',
+          ),
+        ),
+        const PopupMenuDivider(height: 1),
+        // Log out
+        const PopupMenuItem<_SettingsAction>(
+          value: _SettingsAction.logout,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          mouseCursor: SystemMouseCursors.click,
+          child: _MenuRow(
+            icon: Icons.logout,
+            label: 'Log out',
+            color: AppColors.error,
+          ),
+        ),
+      ],
+    );
+
+    if (!mounted) return;
+    if (result == _SettingsAction.profile) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+      );
+    } else if (result == _SettingsAction.logout) {
+      widget.ref.read(authActionsProvider.notifier).signOut();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.ref.watch(authUserProvider).valueOrNull;
+    final displayName =
+        user?.displayName ?? user?.email?.split('@').firstOrNull ?? 'Account';
+    final email = user?.email;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.xxl,
+      ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: _openMenu,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              color: _hovered
+                  ? AppColors.goldenDim.withValues(alpha: 0.5)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 14,
+                  backgroundColor: AppColors.surface,
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      if (email != null)
+                        Text(
+                          email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 10,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.unfold_more,
+                  size: 14,
+                  color: AppColors.textMuted,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.textSecondary;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: c),
+        const SizedBox(width: AppSpacing.md),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 14,
+            color: color ?? AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
