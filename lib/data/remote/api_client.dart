@@ -53,7 +53,7 @@ class ApiClient {
   ///
   /// Returns a map with:
   ///   - "tasks": list of tasks updated on the server since lastSyncAt
-  ///   - "deleted_ids": list of task IDs deleted on the server since lastSyncAt
+  ///   - "deleted_tasks": list of {id, deleted_at} for server-side deletions (LWW)
   Future<Map<String, dynamic>> syncTasks({
     required List<Map<String, dynamic>> tasks,
     required List<String> deletedIds,

@@ -230,6 +230,39 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
     );
   }
 
+  /// Apply a server-initiated deletion using last-write-wins.
+  ///
+  /// The task is only soft-deleted locally if [serverDeletedAt] is **after**
+  /// the local [updatedAt]. If the local version is newer, the deletion is
+  /// ignored (local edit wins). Either way, the task is marked  to
+  /// prevent re-pushing it.
+  Future<void> applyServerDeletion(String id, DateTime serverDeletedAt) async {
+    final existing = await (select(tasks)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+
+    if (existing == null) {
+      // Task not present locally — nothing to do.
+      return;
+    }
+
+    if (serverDeletedAt.isAfter(existing.updatedAt)) {
+      // Server deletion is newer → honor it.
+      await (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(
+          deletedAt: Value(serverDeletedAt),
+          updatedAt: Value(serverDeletedAt),
+          syncStatus: const Value('synced'),
+          lastSyncedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
+    } else {
+      // Local version is newer → ignore server deletion; mark synced so
+      // the next push will overwrite the server with the local data.
+      await markSynced(id);
+    }
+  }
+
   /// Permanently remove tasks that have been soft-deleted AND synced.
   /// Call this periodically to reclaim storage.
   Future<int> purgeDeletedSyncedTasks() {
