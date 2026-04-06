@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/connectivity_provider.dart';
+import '../../../providers/sync_provider.dart';
 import '../../profile/screens/profile_screen.dart';
 import 'nav_destination.dart';
 
@@ -128,8 +129,8 @@ class _Sidebar extends ConsumerWidget {
             ),
           ),
 
-          // Offline indicator
-          _OfflineIndicator(ref: ref),
+          // Sync / offline indicator
+          _SyncIndicator(ref: ref),
           // User profile + settings
           _AccountMenu(context: context, ref: ref),
         ],
@@ -197,19 +198,46 @@ class _SidebarNavItem extends StatelessWidget {
 
 enum _SettingsAction { profile, logout }
 
-// ─── Offline indicator ────────────────────────────────────────────────────────
+// ─── Sync / offline indicator ────────────────────────────────────────────────
 
-class _OfflineIndicator extends StatelessWidget {
-  const _OfflineIndicator({required this.ref});
+class _SyncIndicator extends StatelessWidget {
+  const _SyncIndicator({required this.ref});
 
   final WidgetRef ref;
 
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider).valueOrNull ?? true;
-    if (isOnline) return const SizedBox.shrink();
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(
+    final syncStatus = ref.watch(syncStatusProvider);
+
+    final (IconData icon, String label, Color color) = switch (true) {
+      _ when !isOnline => (
+          Icons.wifi_off_outlined,
+          'Offline',
+          AppColors.textMuted
+        ),
+      _ when syncStatus == SyncStatus.syncing => (
+          Icons.sync_outlined,
+          'Syncing...',
+          AppColors.textMuted
+        ),
+      _ when syncStatus == SyncStatus.synced => (
+          Icons.cloud_done_outlined,
+          'Synced',
+          AppColors.golden.withValues(alpha: 0.7)
+        ),
+      _ when syncStatus == SyncStatus.error => (
+          Icons.sync_problem_outlined,
+          'Sync error',
+          Colors.redAccent
+        ),
+      _ => (Icons.circle, '', Colors.transparent),
+    };
+
+    if (label.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         0,
         AppSpacing.lg,
@@ -217,18 +245,14 @@ class _OfflineIndicator extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.wifi_off_outlined,
-            size: 12,
-            color: AppColors.textMuted,
-          ),
-          SizedBox(width: 5),
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
           Text(
-            'Offline',
+            label,
             style: TextStyle(
               fontFamily: AppTypography.bodyFont,
               fontSize: 11,
-              color: AppColors.textMuted,
+              color: color,
             ),
           ),
         ],

@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'presentation/auth/screens/login_screen.dart';
 import 'presentation/shared/layouts/app_shell.dart';
 import 'providers/auth_provider.dart';
+import 'providers/sync_provider.dart';
 
 class GoaldenApp extends ConsumerWidget {
   const GoaldenApp({super.key});
@@ -30,7 +31,14 @@ class _AuthGate extends ConsumerWidget {
     final authState = ref.watch(authUserProvider);
 
     return authState.when(
-      data: (user) => user != null ? const AppShell() : const LoginScreen(),
+      data: (user) {
+        if (user != null) {
+          // Kick off the initial cloud pull in the background.
+          // Errors are surfaced via syncStatusProvider, not as exceptions.
+          ref.watch(initialSyncProvider);
+        }
+        return user != null ? const AppShell() : const LoginScreen();
+      },
       loading: () => const Scaffold(
         backgroundColor: AppColors.background,
         body: Center(
