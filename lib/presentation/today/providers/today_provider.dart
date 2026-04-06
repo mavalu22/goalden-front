@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../domain/models/task.dart';
 import '../../../providers/database_provider.dart';
+import '../../../providers/sync_provider.dart';
 
 const _uuid = Uuid();
 
@@ -33,6 +34,12 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
+  /// Triggers a background push sync after any task mutation.
+  /// Errors are surfaced via [syncStatusProvider], not propagated.
+  void _scheduleSync() {
+    ref.read(syncActionsProvider.notifier).pushSync();
+  }
+
   Future<void> createTask(
     String title, {
     DateTime? date,
@@ -59,6 +66,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     );
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.createTask(task);
+    _scheduleSync();
   }
 
   Future<void> toggleDone(Task task) async {
@@ -69,11 +77,13 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     );
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.updateTask(updated);
+    _scheduleSync();
   }
 
   Future<void> updateTask(Task task) async {
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.updateTask(task);
+    _scheduleSync();
   }
 
   Future<void> deleteTask(String id, {bool isRecurringSource = false}) async {
@@ -85,11 +95,13 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
       await repo.deleteFutureInstances(id, todayLocal);
     }
     await repo.deleteTask(id);
+    _scheduleSync();
   }
 
   Future<void> reorderTasks(List<Task> reordered) async {
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.reorderTasks(reordered);
+    _scheduleSync();
   }
 
   Future<void> rescheduleToToday(Task task) async {
@@ -97,5 +109,6 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     final today = DateTime(now.year, now.month, now.day);
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.updateTask(task.copyWith(date: today));
+    _scheduleSync();
   }
 }

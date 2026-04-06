@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/config/env.dart';
+import '../data/local/sync_meta_storage.dart';
 import '../data/remote/api_client.dart';
 import '../data/services/sync_service.dart';
 import 'auth_provider.dart';
+import 'connectivity_provider.dart';
 import 'database_provider.dart';
 
 // ── Sync status ───────────────────────────────────────────────────────────────
@@ -41,11 +43,22 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   );
 });
 
+/// Provides the [SyncMetaStorage] for the currently authenticated user.
+final syncMetaStorageProvider = Provider<SyncMetaStorage>((ref) {
+  final userId = ref.watch(authUserProvider).valueOrNull?.id ?? 'anonymous';
+  return SyncMetaStorage(userId);
+});
+
 /// Provides the [SyncService] once the local database is ready.
 final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   final dao = await ref.watch(taskDaoProvider.future);
   final apiClient = ref.watch(apiClientProvider);
-  return SyncService(apiClient: apiClient, dao: dao);
+  final metaStorage = ref.watch(syncMetaStorageProvider);
+  return SyncService(
+    apiClient: apiClient,
+    dao: dao,
+    metaStorage: metaStorage,
+  );
 });
 
 // ── Initial pull ──────────────────────────────────────────────────────────────
@@ -56,13 +69,9 @@ final syncServiceProvider = FutureProvider<SyncService>((ref) async {
 /// This provider rebuilds automatically whenever the authenticated user
 /// changes (i.e. on login and logout). On logout the user is null and
 /// nothing is done.
-///
-/// The result is surfaced via [syncStatusProvider] so the UI can show
-/// a subtle "Synced" / "Offline" / "Sync error" indicator.
 final initialSyncProvider = FutureProvider<void>((ref) async {
   final authUser = await ref.watch(authUserProvider.future);
   if (authUser == null) {
-    // Not logged in — nothing to sync.
     ref.read(syncStatusProvider.notifier).state = SyncStatus.idle;
     return;
   }
@@ -84,3 +93,49 @@ final initialSyncProvider = FutureProvider<void>((ref) async {
     SyncResult.error => SyncStatus.error,
   };
 });
+
+// ── Push sync ─────────────────────────────────────────────────────────────────
+
+/// Notifier that exposes [pushSync] to any part of the app.
+///
+/// Call `ref.read(syncActionsProvider.notifier).pushSync()` after any task
+/// mutation to flush local dirty state to the cloud.
+///
+/// Also automatically retries when the device comes back online.
+final syncActionsProvider =
+    AsyncNotifierProvider<SyncActionsNotifier, void>(SyncActionsNotifier.new);
+
+class SyncActionsNotifier extends AsyncNotifier<void> {
+  @override
+  Future<void> build() async {
+    // Watch connectivity; trigger a push sync when we come back online.
+    ref.listen(isOnlineProvider, (previous, next) {
+      final wasOffline = previous?.valueOrNull == false;
+      final isNowOnline = next.valueOrNull == true;
+      if (wasOffline && isNowOnline) {
+        pushSync();
+      }
+    });
+  }
+
+  /// Pushes all locally-dirty tasks to the cloud.
+  ///
+  /// Safe to call concurrently — if a sync is already in progress the new
+  /// call is debounced by checking the current [syncStatusProvider] state.
+  Future<void> pushSync() async {
+    // Avoid overlapping sync runs.
+    if (ref.read(syncStatusProvider) == SyncStatus.syncing) return;
+
+    final syncService = await ref.read(syncServiceProvider.future);
+
+    ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
+
+    final result = await syncService.pushSync();
+
+    ref.read(syncStatusProvider.notifier).state = switch (result) {
+      SyncResult.success => SyncStatus.synced,
+      SyncResult.offline => SyncStatus.offline,
+      SyncResult.error => SyncStatus.error,
+    };
+  }
+}
