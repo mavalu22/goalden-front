@@ -45,6 +45,36 @@ class ApiClient {
     _assertOk(response, 'sync-user');
   }
 
+  /// Bidirectional sync endpoint.
+  ///
+  /// [tasks] — tasks created/modified locally since [lastSyncAt].
+  /// [deletedIds] — IDs of tasks soft-deleted locally since [lastSyncAt].
+  /// [lastSyncAt] — timestamp of the last successful sync (pass DateTime(0) for first sync).
+  ///
+  /// Returns a map with:
+  ///   - "tasks": list of tasks updated on the server since lastSyncAt
+  ///   - "deleted_ids": list of task IDs deleted on the server since lastSyncAt
+  Future<Map<String, dynamic>> syncTasks({
+    required List<Map<String, dynamic>> tasks,
+    required List<String> deletedIds,
+    required DateTime lastSyncAt,
+  }) async {
+    final response = await http
+        .post(
+          _uri('tasks/sync'),
+          headers: _headers,
+          body: jsonEncode({
+            'tasks': tasks,
+            'deleted_ids': deletedIds,
+            'last_sync_at': lastSyncAt.toUtc().toIso8601String(),
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    _assertOk(response, 'POST /tasks/sync');
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   /// Returns all non-deleted tasks for the authenticated user.
   /// Use for the initial pull after login on a new device.
   Future<List<Map<String, dynamic>>> getAllTasks() async {
