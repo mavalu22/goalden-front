@@ -126,15 +126,11 @@ class SyncService {
         await _dao.applyServerDeletion(id, deletedAt);
       }
 
-      // Mark all successfully pushed tasks as synced.
+      // Mark all successfully pushed tasks as synced, then purge deleted rows.
       for (final entry in pending) {
-        if (entry.syncStatus == 'pending_delete') {
-          // Purge soft-deleted synced tasks to free storage.
-          await _dao.purgeDeletedSyncedTasks();
-        } else {
-          await _dao.markSynced(entry.id);
-        }
+        await _dao.markSynced(entry.id);
       }
+      await _dao.purgeDeletedSyncedTasks();
 
       await _meta.setLastSyncAt(now);
       return SyncResult.success;

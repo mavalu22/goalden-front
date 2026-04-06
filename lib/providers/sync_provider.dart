@@ -83,11 +83,16 @@ final initialSyncProvider = FutureProvider<void>((ref) async {
 
   ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
 
-  final result = await syncService.initialPull(
+  final pullResult = await syncService.initialPull(
     userEmail: authUser.email ?? '',
   );
 
-  ref.read(syncStatusProvider.notifier).state = switch (result) {
+  if (pullResult == SyncResult.success) {
+    // Flush any pending local changes that existed before this login.
+    await syncService.pushSync();
+  }
+
+  ref.read(syncStatusProvider.notifier).state = switch (pullResult) {
     SyncResult.success => SyncStatus.synced,
     SyncResult.offline => SyncStatus.offline,
     SyncResult.error => SyncStatus.error,
