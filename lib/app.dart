@@ -8,11 +8,11 @@ import 'presentation/shared/layouts/app_shell.dart';
 import 'providers/auth_provider.dart';
 import 'providers/sync_provider.dart';
 
-class GoaldenApp extends ConsumerWidget {
+class GoaldenApp extends StatelessWidget {
   const GoaldenApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Goalden',
       debugShowCheckedModeBanner: false,
@@ -23,11 +23,42 @@ class GoaldenApp extends ConsumerWidget {
 }
 
 /// Routes to [AppShell] when authenticated, [LoginScreen] otherwise.
-class _AuthGate extends ConsumerWidget {
+/// Also observes app lifecycle to trigger a push sync on resume.
+class _AuthGate extends ConsumerStatefulWidget {
   const _AuthGate();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<_AuthGate>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Triggers a push sync whenever the app returns to the foreground,
+  /// but only when a user is currently authenticated.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final user = ref.read(authUserProvider).valueOrNull;
+      if (user != null) {
+        ref.read(syncActionsProvider.notifier).pushSync();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authUserProvider);
 
     return authState.when(
