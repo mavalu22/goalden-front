@@ -18,6 +18,9 @@ abstract class Task with _$Task {
     @Default(TaskRecurrence.none) TaskRecurrence recurrence,
     @Default([]) List<int> recurrenceDays,
     required DateTime createdAt,
+    /// Last modification time. Null for tasks created before sync was introduced.
+    /// The sync layer treats null as equivalent to [createdAt].
+    DateTime? updatedAt,
     DateTime? completedAt,
     @Default(0) int sortOrder,
     /// Non-null when this task is a generated instance of a recurring source task.

@@ -31,15 +31,29 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
-  Future<void> createTask(Task task) =>
-      _dao.insertTask(_toCompanion(task));
+  Future<void> createTask(Task task) {
+    final now = DateTime.now().toUtc();
+    return _dao.insertTask(
+      _toCompanion(task).copyWith(
+        updatedAt: Value(now),
+        syncStatus: const Value('pending_create'),
+      ),
+    );
+  }
 
   @override
-  Future<void> updateTask(Task task) =>
-      _dao.updateTask(_toCompanion(task));
+  Future<void> updateTask(Task task) {
+    final now = DateTime.now().toUtc();
+    return _dao.updateTask(
+      _toCompanion(task).copyWith(
+        updatedAt: Value(now),
+        syncStatus: const Value('pending_update'),
+      ),
+    );
+  }
 
   @override
-  Future<void> deleteTask(String id) async => _dao.deleteTask(id);
+  Future<void> deleteTask(String id) => _dao.softDeleteTask(id);
 
   @override
   Stream<List<Task>> watchPendingTasksBefore(DateTime date) =>
@@ -76,7 +90,7 @@ class TaskRepositoryImpl implements TaskRepository {
   Future<void> deleteOldPendingTasks({int days = 7}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final cutoffLocal = DateTime(cutoff.year, cutoff.month, cutoff.day);
-    await _dao.deleteOldPendingTasks(cutoffLocal);
+    await _dao.softDeleteOldPendingTasks(cutoffLocal);
   }
 
   @override
@@ -86,7 +100,7 @@ class TaskRepositoryImpl implements TaskRepository {
         );
   }
 
-  // ─── Mapping ─────────────────────────────────────────────────────────────
+  // ─── Mapping ──────────────────────────────────────────────────────────────
 
   Task _fromEntry(TaskEntry e) {
     return Task(
@@ -101,6 +115,7 @@ class TaskRepositoryImpl implements TaskRepository {
           ? List<int>.from(jsonDecode(e.recurrenceDays!) as List)
           : [],
       createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
       completedAt: e.completedAt,
       sortOrder: e.sortOrder,
       sourceTaskId: e.sourceTaskId,
@@ -110,6 +125,7 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   TasksCompanion _toCompanion(Task t) {
+    final effectiveUpdatedAt = t.updatedAt ?? t.createdAt;
     return TasksCompanion(
       id: Value(t.id),
       title: Value(t.title),
@@ -122,6 +138,7 @@ class TaskRepositoryImpl implements TaskRepository {
           ? const Value(null)
           : Value(jsonEncode(t.recurrenceDays)),
       createdAt: Value(t.createdAt),
+      updatedAt: Value(effectiveUpdatedAt),
       completedAt: Value(t.completedAt),
       sortOrder: Value(t.sortOrder),
       sourceTaskId: Value(t.sourceTaskId),
