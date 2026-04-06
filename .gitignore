@@ -12,6 +12,9 @@ CLAUDE.md
 .history
 .svn/
 migrate_working_dir/
+run.fish
+.vscode
+.metadata
 
 # IntelliJ / Android Studio related
 *.iml
