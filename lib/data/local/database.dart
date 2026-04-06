@@ -15,7 +15,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -29,6 +29,16 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await m.addColumn(tasks, tasks.startTimeMinutes);
             await m.addColumn(tasks, tasks.endTimeMinutes);
+          }
+          if (from < 5) {
+            await m.addColumn(tasks, tasks.updatedAt);
+            await m.addColumn(tasks, tasks.lastSyncedAt);
+            await m.addColumn(tasks, tasks.syncStatus);
+            await m.addColumn(tasks, tasks.deletedAt);
+            // Backfill updatedAt for existing rows using their createdAt value.
+            await customStatement(
+              'UPDATE tasks SET updated_at = created_at WHERE updated_at IS NULL',
+            );
           }
         },
       );

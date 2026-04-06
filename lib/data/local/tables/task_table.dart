@@ -29,6 +29,11 @@ class Tasks extends Table {
 
   DateTimeColumn get createdAt => dateTime()();
 
+  /// Last modification time — used for last-write-wins conflict resolution
+  /// during sync. Defaults to the current timestamp at insert time.
+  DateTimeColumn get updatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+
   DateTimeColumn get completedAt => dateTime().nullable()();
 
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
@@ -42,6 +47,22 @@ class Tasks extends Table {
 
   /// Optional end time in minutes from midnight (0–1439).
   IntColumn get endTimeMinutes => integer().nullable()();
+
+  // ── Sync metadata ─────────────────────────────────────────────────────────
+
+  /// When this task was last successfully pushed to or pulled from the cloud.
+  /// Null means it has never been synced.
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  /// Dirty-state marker for incremental sync.
+  /// Values: 'pending_create' | 'pending_update' | 'pending_delete' | 'synced'
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending_create'))();
+
+  /// Soft-delete timestamp. Non-null means the task has been logically deleted
+  /// and should be hidden from the UI, but the row is kept until the deletion
+  /// is propagated to the cloud.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
