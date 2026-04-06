@@ -31,14 +31,18 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(tasks, tasks.endTimeMinutes);
           }
           if (from < 5) {
-            await m.addColumn(tasks, tasks.updatedAt);
+            // updated_at uses currentDateAndTime default which is non-constant;
+            // ALTER TABLE ADD COLUMN requires a constant default in SQLite < 3.37.
+            // Use epoch (0) as placeholder then backfill from created_at.
+            await customStatement(
+              'ALTER TABLE tasks ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0',
+            );
+            await customStatement(
+              'UPDATE tasks SET updated_at = created_at',
+            );
             await m.addColumn(tasks, tasks.lastSyncedAt);
             await m.addColumn(tasks, tasks.syncStatus);
             await m.addColumn(tasks, tasks.deletedAt);
-            // Backfill updatedAt for existing rows using their createdAt value.
-            await customStatement(
-              'UPDATE tasks SET updated_at = created_at WHERE updated_at IS NULL',
-            );
           }
         },
       );
