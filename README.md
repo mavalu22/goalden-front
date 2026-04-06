@@ -1,2 +1,143 @@
-# goalden
-Goalden is a personal productivity app focused on daily and weekly planning, helping users turn tasks, routines, reading progress, and long-term goals into consistent achievement.
+# Goalden
+
+A minimal daily and weekly task management app built with Flutter. Goalden helps you plan your day, manage recurring tasks, and stay on top of your week — across desktop and mobile.
+
+---
+
+## Screenshots
+
+| Today — Desktop | Today — Mobile |
+|---|---|
+| ![Today Desktop](assets/images/screenshot-today-desktop.png) | ![Today Mobile](assets/images/screenshot-today-mobile.png) |
+
+| Week — Desktop | Week — Mobile |
+|---|---|
+| ![Week Desktop](assets/images/screenshot-week-desktop.png) | ![Week Mobile](assets/images/screenshot-week-mobile.png) |
+
+---
+
+## Features
+
+- **Today screen** — daily task list with quick add, completion toggle, swipe-to-postpone, swipe-to-remove, and drag-to-reorder
+- **Week screen** — 7-day overview with per-day task lists and drag-between-days
+- **Task detail** — full creation and editing form with title, notes, time range, recurrence, and scheduling
+- **Recurring tasks** — daily, weekly, and custom recurrence with delete-all-or-just-this awareness
+- **Desktop-optimized layout** — contextual sidebar, hover menus, right-click context menus, keyboard-friendly interactions
+- **Authentication** — Email/password, Google Sign In, Apple Sign In (iOS/macOS native; OAuth redirect on other platforms)
+- **Profile screen** — display name editing and account management
+- **Empty and feedback states** — loading, error, and empty states throughout
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Flutter 3.x (Dart 3.x) |
+| State management | Riverpod (riverpod_generator, AsyncNotifier) |
+| Local storage | Drift (SQLite) with per-user database isolation |
+| Backend | Custom Go REST API |
+| Auth & sync | Supabase Auth (Google, Apple, Email) |
+| Navigation | go_router |
+| Models | Freezed + json_serializable |
+| Animations | flutter_animate |
+
+---
+
+## Platforms
+
+| Platform | Status |
+|---|---|
+| Linux (desktop) | Working |
+| Android | Working |
+| macOS | Planned (post-V1) |
+| Windows | Planned (post-V1) |
+| iOS | Planned (post-V1) |
+
+See [PLATFORM_STATUS.md](PLATFORM_STATUS.md) for a full readiness evaluation.
+
+---
+
+## Local setup
+
+### Prerequisites
+
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel)
+- Java 17+ (for Android builds)
+- Android SDK (for Android builds — see [RELEASE.md](RELEASE.md))
+
+### 1. Clone and install dependencies
+
+```bash
+git clone https://github.com/mavalu22/goalden-front
+cd goalden-front
+flutter pub get
+```
+
+### 2. Configure environment
+
+Copy the example env file and fill in your Supabase credentials:
+
+```bash
+cp .env.example .env
+```
+
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+API_BASE_URL=http://localhost:8080/api/v1
+```
+
+### 3. Run
+
+```bash
+# Linux desktop
+flutter run -d linux --dart-define-from-file=.env
+
+# Android (device must be connected with USB debugging enabled)
+flutter run -d <device-id> --dart-define-from-file=.env
+
+# Or use the helper script
+fish run.fish                        # Linux debug
+fish run.fish build                  # Linux release build
+fish run.fish build-android-release  # Android release APK
+```
+
+### 4. Code generation (if needed)
+
+```bash
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+---
+
+## Project structure
+
+```
+lib/
+├── app.dart                  # Root app widget and router setup
+├── main.dart                 # Entry point, Supabase init, deep link handling
+├── core/
+│   ├── config/               # Environment config (Env class)
+│   ├── platform/             # Platform-specific URL scheme handling
+│   └── theme/                # Design system (colors, typography, tokens)
+├── data/
+│   ├── local/                # Drift database, tables, DAOs, migrations
+│   └── repositories/         # Auth and task repository implementations
+├── domain/
+│   ├── models/               # Freezed data models (AppUser, Task, etc.)
+│   └── repositories/         # Repository interfaces
+└── presentation/
+    ├── auth/                 # Login, email auth screens
+    ├── today/                # Today screen, task tiles, task detail
+    ├── week/                 # Week screen, day columns
+    └── profile/              # Profile screen
+```
+
+---
+
+## Related
+
+- [goalden-back](https://github.com/mavalu22/goalden-back) — Go REST API backend
+- [RELEASE.md](RELEASE.md) — Build and release instructions
+- [PLATFORM_STATUS.md](PLATFORM_STATUS.md) — Platform readiness report
