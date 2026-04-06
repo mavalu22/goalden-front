@@ -117,13 +117,13 @@ class SyncService {
         await _dao.upsertFromCloud(_rawToCompanion(raw));
       }
 
-      // Remove tasks deleted on other devices.
-      final serverDeletedIds =
-          (response['deleted_ids'] as List<dynamic>? ?? []).cast<String>();
-      for (final id in serverDeletedIds) {
-        // Soft-delete locally only if not already deleted.
-        await _dao.softDeleteTask(id);
-        await _dao.markSynced(id);
+      // Apply LWW deletion from other devices (server returns deleted_at timestamp).
+      final serverDeletedTasks =
+          (response['deleted_tasks'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      for (final d in serverDeletedTasks) {
+        final id = d['id'] as String;
+        final deletedAt = _parseDateTime(d['deleted_at']) ?? DateTime.now().toUtc();
+        await _dao.applyServerDeletion(id, deletedAt);
       }
 
       // Mark all successfully pushed tasks as synced.
