@@ -6,6 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/connectivity_provider.dart';
+import '../../../providers/sync_provider.dart';
 import '../../profile/screens/profile_screen.dart';
 import 'nav_destination.dart';
 
@@ -73,17 +74,28 @@ class _MobileAppBar extends ConsumerWidget implements PreferredSizeWidget {
                       letterSpacing: 2,
                     ),
                   ),
-                  // Offline indicator
+                  // Sync / offline indicator
                   Builder(builder: (context) {
                     final isOnline =
                         ref.watch(isOnlineProvider).valueOrNull ?? true;
-                    if (isOnline) return const SizedBox.shrink();
-                    return const Text(
-                      'Offline',
+                    final syncStatus = ref.watch(syncStatusProvider);
+                    final (String label, Color color) = switch (true) {
+                      _ when !isOnline => ('Offline', AppColors.textMuted),
+                      _ when syncStatus == SyncStatus.syncing =>
+                        ('Syncing...', AppColors.textMuted),
+                      _ when syncStatus == SyncStatus.synced =>
+                        ('Synced', AppColors.golden.withValues(alpha: 0.7)),
+                      _ when syncStatus == SyncStatus.error =>
+                        ('Sync error', Colors.redAccent),
+                      _ => ('', Colors.transparent),
+                    };
+                    if (label.isEmpty) return const SizedBox.shrink();
+                    return Text(
+                      label,
                       style: TextStyle(
                         fontFamily: AppTypography.bodyFont,
                         fontSize: 9,
-                        color: AppColors.textMuted,
+                        color: color,
                         letterSpacing: 0.5,
                       ),
                     );
