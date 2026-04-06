@@ -67,3 +67,8 @@ app.*.map.json
 # Generated files
 *.g.dart
 *.freezed.dart
+
+# Web generated artifacts
+web/drift_worker.js
+web/drift_worker.js.deps
+web/sqlite3.wasm
