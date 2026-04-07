@@ -12,7 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:goalden/data/local/database.dart';
 import 'package:goalden/data/local/daos/task_dao.dart';
-import 'package:goalden/data/local/tables/task_table.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 
 AppDatabase _openInMemory() =>
