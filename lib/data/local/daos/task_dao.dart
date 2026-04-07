@@ -92,7 +92,11 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
         .get();
   }
 
-  /// Whether a non-deleted recurring instance exists for [sourceId] on [date].
+  /// Whether a recurring instance (including soft-deleted ones) exists for
+  /// [sourceId] on [date].
+  ///
+  /// Soft-deleted rows are intentionally included so that the recurrence
+  /// service does not recreate an instance the user explicitly removed.
   Future<bool> recurringInstanceExists(String sourceId, DateTime date) async {
     final dayStart = DateTime(date.year, date.month, date.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
@@ -101,8 +105,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
             (t) =>
                 t.sourceTaskId.equals(sourceId) &
                 t.date.isBiggerOrEqualValue(dayStart) &
-                t.date.isSmallerThanValue(dayEnd) &
-                t.deletedAt.isNull(),
+                t.date.isSmallerThanValue(dayEnd),
           ))
         .get();
     return rows.isNotEmpty;
@@ -165,16 +168,33 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
     );
   }
 
-  /// Delete future recurring instances of [sourceId] starting from [fromDate].
-  Future<int> deleteFutureInstances(String sourceId, DateTime fromDate) {
+  /// Soft-delete future recurring instances of [sourceId] starting from
+  /// [fromDate].
+  ///
+  /// Uses soft-delete (sets [deletedAt] + [syncStatus] = 'pending_delete') so
+  /// that deletions are propagated to the cloud during the next push sync.
+  /// Already soft-deleted rows are skipped to avoid overwriting their
+  /// [deletedAt] timestamp.
+  Future<void> softDeleteFutureInstances(
+    String sourceId,
+    DateTime fromDate,
+  ) {
     final dayStart = DateTime(fromDate.year, fromDate.month, fromDate.day);
-    return (delete(tasks)
+    final now = DateTime.now().toUtc();
+    return (update(tasks)
           ..where(
             (t) =>
                 t.sourceTaskId.equals(sourceId) &
-                t.date.isBiggerOrEqualValue(dayStart),
+                t.date.isBiggerOrEqualValue(dayStart) &
+                t.deletedAt.isNull(),
           ))
-        .go();
+        .write(
+      TasksCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+        syncStatus: const Value('pending_delete'),
+      ),
+    );
   }
 
   // ── Sync operations ───────────────────────────────────────────────────────
@@ -264,13 +284,18 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
   }
 
   /// Permanently remove tasks that have been soft-deleted AND synced.
-  /// Call this periodically to reclaim storage.
+  ///
+  /// Recurring instances ([sourceTaskId] IS NOT NULL) are intentionally
+  /// retained as tombstones even after syncing. This prevents the recurrence
+  /// service from recreating a deleted instance on a subsequent load.
+  /// Non-recurring tasks are purged normally to reclaim storage.
   Future<int> purgeDeletedSyncedTasks() {
     return (delete(tasks)
           ..where(
             (t) =>
                 t.deletedAt.isNotNull() &
-                t.syncStatus.equals('synced'),
+                t.syncStatus.equals('synced') &
+                t.sourceTaskId.isNull(),
           ))
         .go();
   }

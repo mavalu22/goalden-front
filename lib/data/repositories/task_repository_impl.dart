@@ -83,7 +83,7 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<void> deleteFutureInstances(
       String sourceTaskId, DateTime fromDate) async {
-    await _dao.deleteFutureInstances(sourceTaskId, fromDate);
+    await _dao.softDeleteFutureInstances(sourceTaskId, fromDate);
   }
 
   @override
