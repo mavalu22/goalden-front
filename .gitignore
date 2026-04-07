@@ -8,6 +8,7 @@ CLAUDE.md
 *.swp
 .DS_Store
 .atom/
+devtools_options.yaml
 .buildlog/
 .history
 .svn/
