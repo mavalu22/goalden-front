@@ -73,7 +73,7 @@ See [docs/PLATFORM_STATUS.md](docs/PLATFORM_STATUS.md) for a full per-platform r
 ### Prerequisites
 
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel)
-- Java 17+ and Android SDK (Android builds only — see [RELEASE.md](RELEASE.md))
+- Java 17+ and Android SDK (Android builds only — see [docs/RELEASE.md](docs/RELEASE.md))
 
 ### 1. Clone and install dependencies
 
@@ -151,6 +151,6 @@ lib/
 
 - [goalden-back](https://github.com/mavalu22/goalden-back) — Go REST API backend
 - [goalden-back/docs/ARCHITECTURE.md](https://github.com/mavalu22/goalden-back/blob/main/docs/ARCHITECTURE.md) — Full system architecture and sync protocol
-- [RELEASE.md](RELEASE.md) — Build and release instructions
+- [docs/RELEASE.md](docs/RELEASE.md) — Build and release instructions
 - [docs/PLATFORM_STATUS.md](docs/PLATFORM_STATUS.md) — Platform readiness report
 - [docs/SYNC_TESTING.md](docs/SYNC_TESTING.md) — Multi-device sync test checklist
