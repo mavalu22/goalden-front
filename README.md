@@ -6,9 +6,9 @@ A minimal daily and weekly task management app built with Flutter. Goalden helps
 
 ## Screenshots
 
-| Login | Today |
-|---|---|
-| ![Login](assets/images/Login.png) | ![Today](assets/images/Today.png) |
+| Login | Today | Week |
+|---|---|---|
+| ![Login](assets/images/Login.png) | ![Today](assets/images/Today.png) | ![Week](assets/images/Week.png) |
 
 ---
 

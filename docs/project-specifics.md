@@ -121,9 +121,10 @@ lib/
 | `build_runner` | Code generation runner |
 | `flutter_animate` | Micro-animations and transitions |
 | `flutter_slidable` | Swipe actions on list items |
-| `reorderable_grid` or `drag_and_drop_lists` | Drag & drop reordering |
 | `intl` | Date formatting and localization |
 | `connectivity_plus` | Network state detection (for offline/online sync) |
+| `uuid` | Client-side UUID generation for task IDs |
+| `app_links` | OAuth deep link callback handling |
 
 ---
 
@@ -212,9 +213,8 @@ flutter build apk --dart-define-from-file=.env      # Android APK
 
 ### Branch Strategy
 - `main` — stable, production-ready code
-- `dev` — active development branch
-- Feature branches: `feature/TASK-XXX-short-description`
-- All work happens on `dev` or feature branches, merged into `main` when stable
+- Task branches: `task-XXX` (e.g., `task-042`)
+- All work happens on task branches, merged into `main` via pull request
 
 ### Commit Format
 - `[TASK-XXX] short description of what was done`
@@ -228,9 +228,13 @@ flutter build apk --dart-define-from-file=.env      # Android APK
 ### Required Tools
 - Flutter SDK 3.x (latest stable)
 - Dart SDK 3.x (comes with Flutter)
-- Xcode (for iOS/macOS builds)
-- Android Studio or Android SDK (for Android builds)
 - A Supabase project with Auth configured (Google, Apple, Email providers enabled)
+
+**Android builds only:**
+- Java 17+ (`jdk17-openjdk` on Arch/Manjaro)
+- Android SDK (configured via `flutter config --android-sdk ~/Android/Sdk`)
+
+> iOS, macOS, and Windows are post-V1 targets. Their platform directories are not yet set up in this repository.
 
 ### Environment Variables
 - Store sensitive configuration (Supabase URL, anon key) in environment files
