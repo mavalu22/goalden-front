@@ -21,11 +21,11 @@ class _PostponeSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final tomorrow = today.add(const Duration(days: 1));
     final next7 = List.generate(
       7,
-      (i) => DateTime(now.year, now.month, now.day + i + 1),
+      (i) => today.add(Duration(days: i + 1)),
     );
 
     return Container(
