@@ -18,10 +18,10 @@ final todayTasksProvider = StreamProvider<List<Task>>((ref) async* {
 });
 
 /// Reactive stream of uncompleted tasks from previous days.
-/// Also triggers cleanup of tasks older than 7 days on initialization.
 final pendingTasksProvider = StreamProvider<List<Task>>((ref) async* {
+  // Ensure one-time overdue cleanup has run before streaming pending tasks.
+  await ref.watch(overdueCleanupProvider.future);
   final repo = await ref.watch(taskRepositoryProvider.future);
-  repo.deleteOldPendingTasks(days: 7);
   final now = DateTime.now();
   yield* repo.watchPendingTasksBefore(now);
 });

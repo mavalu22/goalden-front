@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/local/database.dart';
@@ -43,4 +44,17 @@ final recurrenceServiceProvider =
     FutureProvider<RecurrenceService>((ref) async {
   final repo = await ref.watch(taskRepositoryProvider.future);
   return RecurrenceService(repo);
+});
+
+/// Runs overdue-task cleanup exactly once per session, as soon as the
+/// repository is available. Errors are caught and logged so cleanup
+/// failures never affect task loading.
+final overdueCleanupProvider = FutureProvider<void>((ref) async {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  try {
+    await repo.deleteOldPendingTasks(days: 7);
+  } catch (e) {
+    // Cleanup is best-effort — a failure is non-fatal.
+    debugPrint('[overdueCleanup] Failed to clean up old pending tasks: $e');
+  }
 });
