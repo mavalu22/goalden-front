@@ -111,6 +111,12 @@ final syncActionsProvider =
     AsyncNotifierProvider<SyncActionsNotifier, void>(SyncActionsNotifier.new);
 
 class SyncActionsNotifier extends AsyncNotifier<void> {
+  /// Synchronous guard that prevents concurrent push sync executions.
+  ///
+  /// Set to true before the first await so subsequent calls see it
+  /// immediately — no gap between check and lock, even in async code.
+  bool _syncing = false;
+
   @override
   Future<void> build() async {
     // Watch connectivity; trigger a push sync when we come back online.
@@ -125,22 +131,27 @@ class SyncActionsNotifier extends AsyncNotifier<void> {
 
   /// Pushes all locally-dirty tasks to the cloud.
   ///
-  /// Safe to call concurrently — if a sync is already in progress the new
-  /// call is debounced by checking the current [syncStatusProvider] state.
+  /// Only one push sync runs at a time. Concurrent callers return
+  /// immediately without launching a second sync operation.
+  /// Errors during sync always release the guard.
   Future<void> pushSync() async {
-    // Avoid overlapping sync runs.
-    if (ref.read(syncStatusProvider) == SyncStatus.syncing) return;
+    if (_syncing) return;
+    _syncing = true;
 
-    final syncService = await ref.read(syncServiceProvider.future);
+    try {
+      final syncService = await ref.read(syncServiceProvider.future);
 
-    ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
+      ref.read(syncStatusProvider.notifier).state = SyncStatus.syncing;
 
-    final result = await syncService.pushSync();
+      final result = await syncService.pushSync();
 
-    ref.read(syncStatusProvider.notifier).state = switch (result) {
-      SyncResult.success => SyncStatus.synced,
-      SyncResult.offline => SyncStatus.offline,
-      SyncResult.error => SyncStatus.error,
-    };
+      ref.read(syncStatusProvider.notifier).state = switch (result) {
+        SyncResult.success => SyncStatus.synced,
+        SyncResult.offline => SyncStatus.offline,
+        SyncResult.error => SyncStatus.error,
+      };
+    } finally {
+      _syncing = false;
+    }
   }
 }
