@@ -206,6 +206,9 @@ class SyncService {
     );
   }
 
+  /// Formats a calendar date as YYYY-MM-DD for the wire format.
+  /// [dt] must be a date-only value (local midnight from the task's date field).
+  /// Do NOT pass a UTC-shifted timestamp — use the raw date field directly.
   String _fmtDate(DateTime dt) =>
       '${dt.year.toString().padLeft(4, '0')}-'
       '${dt.month.toString().padLeft(2, '0')}-'

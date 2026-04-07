@@ -69,7 +69,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
   Stream<List<TaskEntry>> watchTasksForDateRange(DateTime start, DateTime end) {
     final startLocal = DateTime(start.year, start.month, start.day);
     final endLocal =
-        DateTime(end.year, end.month, end.day + 1); // exclusive end
+        DateTime(end.year, end.month, end.day).add(const Duration(days: 1)); // exclusive end
     return (select(tasks)
           ..where(
             (t) =>
