@@ -16,6 +16,20 @@ A minimal daily and weekly task management app built with Flutter. Goalden helps
 
 ---
 
+## Engineering highlights
+
+- **Offline-first** — all reads and writes go to local SQLite (Drift); sync is a background concern that never blocks the UI
+- **Bidirectional sync** — last-write-wins on `updated_at`; handles concurrent edits, offline queues, and reconnect scenarios
+- **Soft-delete tombstoning** — deletions are tracked and synced to other devices instead of silently removed
+- **Recurring task deletion** — deleting a recurring source soft-deletes all future instances so they don't recreate themselves on other devices (regression-tested)
+- **Sync concurrency guard** — synchronous boolean guard prevents overlapping sync calls across async boundaries
+- **Lazy recurrence generation** — recurring instances are generated on demand per date, keeping the dataset small and sync fast
+- **Per-user database isolation** — each Supabase user gets their own SQLite file; switching accounts opens a fresh database
+
+See [goalden-back/docs/ARCHITECTURE.md](https://github.com/mavalu22/goalden-back/blob/main/docs/ARCHITECTURE.md) for the full system design.
+
+---
+
 ## Features
 
 - **Today screen** — daily task list with quick add, completion toggle, swipe-to-postpone, swipe-to-remove, and drag-to-reorder
@@ -139,5 +153,7 @@ lib/
 ## Related
 
 - [goalden-back](https://github.com/mavalu22/goalden-back) — Go REST API backend
+- [goalden-back/docs/ARCHITECTURE.md](https://github.com/mavalu22/goalden-back/blob/main/docs/ARCHITECTURE.md) — Full system architecture and sync protocol
 - [RELEASE.md](RELEASE.md) — Build and release instructions
-- [PLATFORM_STATUS.md](PLATFORM_STATUS.md) — Platform readiness report
+- [docs/PLATFORM_STATUS.md](docs/PLATFORM_STATUS.md) — Platform readiness report
+- [docs/SYNC_TESTING.md](docs/SYNC_TESTING.md) — Multi-device sync test checklist
