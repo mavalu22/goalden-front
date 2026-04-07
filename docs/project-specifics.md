@@ -186,26 +186,25 @@ All visual values are centralized in `lib/core/theme/`. Never hardcode colors, f
 
 ## Build & Run
 
+Generated Dart files (Drift, Freezed, Riverpod) are **not committed** to the repository. Code generation is required on every clean checkout before building or running.
+
 ```bash
-# Get dependencies
+# 1. Get dependencies
 flutter pub get
 
-# Run code generation (Riverpod, Drift, Freezed)
+# 2. Run code generation — required from a clean checkout
 dart run build_runner build --delete-conflicting-outputs
 
-# Run on a specific platform
-flutter run -d chrome        # Web (for quick testing)
-flutter run -d macos         # macOS desktop
-flutter run -d ios            # iOS simulator
-flutter run -d android        # Android emulator
+# 3. Run (supported V1 platforms)
+flutter run -d linux --dart-define-from-file=.env    # Linux desktop
+flutter run -d <device-id> --dart-define-from-file=.env  # Android
 
 # Build release
-flutter build apk             # Android
-flutter build ios              # iOS
-flutter build macos            # macOS
-flutter build windows          # Windows
-flutter build linux            # Linux
+flutter build linux --dart-define-from-file=.env    # Linux
+flutter build apk --dart-define-from-file=.env      # Android APK
 ```
+
+> macOS, Windows, iOS, and web are post-V1 targets. Platform directories for these are not yet set up in the repository.
 
 ---
 

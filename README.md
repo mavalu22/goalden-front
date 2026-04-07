@@ -1,18 +1,14 @@
 # Goalden
 
-A minimal daily and weekly task management app built with Flutter. Goalden helps you plan your day, manage recurring tasks, and stay on top of your week — across desktop and mobile.
+A minimal daily and weekly task management app built with Flutter. Goalden helps you plan your day, manage recurring tasks, and stay on top of your week — on Linux desktop and Android.
 
 ---
 
 ## Screenshots
 
-| Today — Desktop | Today — Mobile |
+| Login | Today |
 |---|---|
-| ![Today Desktop](assets/images/screenshot-today-desktop.png) | ![Today Mobile](assets/images/screenshot-today-mobile.png) |
-
-| Week — Desktop | Week — Mobile |
-|---|---|
-| ![Week Desktop](assets/images/screenshot-week-desktop.png) | ![Week Mobile](assets/images/screenshot-week-mobile.png) |
+| ![Login](assets/images/Login.png) | ![Today](assets/images/Today.png) |
 
 ---
 
@@ -60,15 +56,15 @@ See [goalden-back/docs/ARCHITECTURE.md](https://github.com/mavalu22/goalden-back
 
 ## Platforms
 
-| Platform | Status |
+| Platform | V1 Status |
 |---|---|
-| Linux (desktop) | Working |
-| Android | Working |
-| macOS | Planned (post-V1) |
-| Windows | Planned (post-V1) |
-| iOS | Planned (post-V1) |
+| Linux (desktop) | Supported — primary V1 target |
+| Android | Supported — requires signing config for release builds |
+| macOS | Post-V1 |
+| Windows | Post-V1 |
+| iOS | Post-V1 |
 
-See [PLATFORM_STATUS.md](PLATFORM_STATUS.md) for a full readiness evaluation.
+See [docs/PLATFORM_STATUS.md](docs/PLATFORM_STATUS.md) for a full per-platform readiness evaluation.
 
 ---
 
@@ -77,8 +73,7 @@ See [PLATFORM_STATUS.md](PLATFORM_STATUS.md) for a full readiness evaluation.
 ### Prerequisites
 
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (stable channel)
-- Java 17+ (for Android builds)
-- Android SDK (for Android builds — see [RELEASE.md](RELEASE.md))
+- Java 17+ and Android SDK (Android builds only — see [RELEASE.md](RELEASE.md))
 
 ### 1. Clone and install dependencies
 
@@ -102,7 +97,15 @@ SUPABASE_ANON_KEY=your-anon-key
 API_BASE_URL=http://localhost:8080/api/v1
 ```
 
-### 3. Run
+### 3. Run code generation
+
+Generated Dart files (Drift, Freezed, Riverpod) are not committed to the repository. This step is **required** on every clean checkout before building or running the app:
+
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
+### 4. Run
 
 ```bash
 # Linux desktop
@@ -115,12 +118,6 @@ flutter run -d <device-id> --dart-define-from-file=.env
 fish run.fish                        # Linux debug
 fish run.fish build                  # Linux release build
 fish run.fish build-android-release  # Android release APK
-```
-
-### 4. Code generation (if needed)
-
-```bash
-flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
 ---
