@@ -54,7 +54,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     int? startTimeMinutes,
     int? endTimeMinutes,
   }) async {
-    if (title.trim().isEmpty) return;
+    if (title.trim().isEmpty || title.trim().length > 500) return;
     if (!_validRecurrenceDays(recurrenceDays)) return;
     final now = DateTime.now();
     final task = Task(
@@ -86,6 +86,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
   }
 
   Future<void> updateTask(Task task) async {
+    if (task.title.trim().isEmpty || task.title.trim().length > 500) return;
     if (!_validRecurrenceDays(task.recurrenceDays)) return;
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.updateTask(task);
