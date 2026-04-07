@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/task.dart';
@@ -48,21 +49,30 @@ class RecurrenceService {
           await _repository.recurringInstanceExists(source.id, today);
       if (exists) continue;
 
-      await _repository.createTask(
-        Task(
-          id: _uuid.v4(),
-          title: source.title,
-          date: today,
-          priority: source.priority,
-          note: source.note,
-          recurrence: TaskRecurrence.none,
-          recurrenceDays: const [],
-          createdAt: DateTime.now(),
-          sourceTaskId: source.id,
-          startTimeMinutes: source.startTimeMinutes,
-          endTimeMinutes: source.endTimeMinutes,
-        ),
-      );
+      try {
+        await _repository.createTask(
+          Task(
+            id: _uuid.v4(),
+            title: source.title,
+            date: today,
+            priority: source.priority,
+            note: source.note,
+            recurrence: TaskRecurrence.none,
+            recurrenceDays: const [],
+            createdAt: DateTime.now(),
+            sourceTaskId: source.id,
+            startTimeMinutes: source.startTimeMinutes,
+            endTimeMinutes: source.endTimeMinutes,
+          ),
+        );
+      } catch (e, st) {
+        // Log and continue — a single write failure must not prevent
+        // other instances from being generated for the same date.
+        debugPrint(
+          '[RecurrenceService] Failed to create instance for '
+          'source=${source.id} date=$today: $e\n$st',
+        );
+      }
     }
   }
 }
