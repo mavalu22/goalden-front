@@ -40,6 +40,10 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     ref.read(syncActionsProvider.notifier).pushSync();
   }
 
+  /// Returns true if every day in [days] is a valid ISO weekday (1–7).
+  bool _validRecurrenceDays(List<int> days) =>
+      days.every((d) => d >= 1 && d <= 7);
+
   Future<void> createTask(
     String title, {
     DateTime? date,
@@ -51,6 +55,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     int? endTimeMinutes,
   }) async {
     if (title.trim().isEmpty) return;
+    if (!_validRecurrenceDays(recurrenceDays)) return;
     final now = DateTime.now();
     final task = Task(
       id: _uuid.v4(),
@@ -81,6 +86,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
   }
 
   Future<void> updateTask(Task task) async {
+    if (!_validRecurrenceDays(task.recurrenceDays)) return;
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.updateTask(task);
     _scheduleSync();
