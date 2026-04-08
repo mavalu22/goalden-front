@@ -106,10 +106,11 @@ flutter run -d linux --dart-define-from-file=.env
 # Android (device must be connected with USB debugging enabled)
 flutter run -d <device-id> --dart-define-from-file=.env
 
-# Or use the helper script
-fish run.fish                        # Linux debug
-fish run.fish build                  # Linux release build
-fish run.fish build-android-release  # Android release APK
+# Linux release build
+flutter build linux --dart-define-from-file=.env
+
+# Android release APK
+flutter build apk --dart-define-from-file=.env
 ```
 
 ---
