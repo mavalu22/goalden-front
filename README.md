@@ -152,4 +152,4 @@ lib/
 - [goalden-back/docs/ARCHITECTURE.md](https://github.com/mavalu22/goalden-back/blob/main/docs/ARCHITECTURE.md) — Full system architecture and sync protocol
 - [docs/RELEASE.md](docs/RELEASE.md) — Build and release instructions
 - [docs/PLATFORM_STATUS.md](docs/PLATFORM_STATUS.md) — Platform readiness report
-- [docs/SYNC_TESTING.md](docs/SYNC_TESTING.md) — Multi-device sync test checklist
+
