@@ -4,14 +4,6 @@ A minimal daily and weekly task management app built with Flutter. Goalden helps
 
 ---
 
-## Screenshots
-
-| Login | Today | Week |
-|---|---|---|
-| ![Login](assets/images/Login.png) | ![Today](assets/images/Today.png) | ![Week](assets/images/Week.png) |
-
----
-
 ## Engineering highlights
 
 - **Offline-first** — all reads and writes go to local SQLite (Drift); sync is a background concern that never blocks the UI
