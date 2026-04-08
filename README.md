@@ -123,19 +123,25 @@ lib/
 ├── main.dart                 # Entry point, Supabase init, deep link handling
 ├── core/
 │   ├── config/               # Environment config (Env class)
+│   ├── constants/            # App-wide constants
 │   ├── platform/             # Platform-specific URL scheme handling
 │   └── theme/                # Design system (colors, typography, tokens)
 ├── data/
-│   ├── local/                # Drift database, tables, DAOs, migrations
-│   └── repositories/         # Auth and task repository implementations
+│   ├── local/                # Drift database, tables, DAOs, sync metadata
+│   ├── remote/               # Go backend HTTP client
+│   ├── repositories/         # Auth and task repository implementations
+│   └── services/             # SyncService (push/pull sync coordination)
 ├── domain/
-│   ├── models/               # Freezed data models (AppUser, Task, etc.)
-│   └── repositories/         # Repository interfaces
-└── presentation/
-    ├── auth/                 # Login, email auth screens
-    ├── today/                # Today screen, task tiles, task detail
-    ├── week/                 # Week screen, day columns
-    └── profile/              # Profile screen
+│   ├── models/               # Freezed data models (AuthUser, Task)
+│   ├── repositories/         # Repository interfaces
+│   └── services/             # RecurrenceService (lazy instance generation)
+├── presentation/
+│   ├── auth/                 # Login, email auth screens
+│   ├── today/                # Today screen, task tiles, task detail
+│   ├── week/                 # Week screen, day columns
+│   ├── profile/              # Profile screen
+│   └── shared/               # Reusable widgets and layouts
+└── providers/                # Global providers (auth, database, connectivity, sync)
 ```
 
 ---

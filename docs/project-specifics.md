@@ -45,23 +45,28 @@ lib/
 ├── main.dart                    # App entry point
 ├── app.dart                     # MaterialApp / router configuration
 ├── core/                        # Shared utilities and constants
-│   ├── theme/                   # Design system (colors, typography, spacing)
-│   │   ├── app_colors.dart
-│   │   ├── app_typography.dart
-│   │   ├── app_spacing.dart
-│   │   └── app_theme.dart
-│   └── constants/               # App-wide constants
+│   ├── config/                  # Environment config (Env class)
+│   ├── constants/               # App-wide constants
+│   ├── platform/                # Platform-specific URL scheme handling
+│   └── theme/                   # Design system (colors, typography, spacing)
+│       ├── app_colors.dart
+│       ├── app_typography.dart
+│       ├── app_spacing.dart
+│       └── app_theme.dart
 ├── data/                        # Data layer
 │   ├── local/                   # Drift database
 │   │   ├── database.dart        # Database definition
 │   │   ├── tables/              # Table definitions
-│   │   └── daos/                # Data Access Objects
+│   │   ├── daos/                # Data Access Objects
+│   │   └── sync_meta_storage.dart # Sync metadata (last_sync_at)
 │   ├── remote/                  # API clients
 │   │   └── api_client.dart      # Go backend HTTP client
-│   └── repositories/            # Repository implementations
+│   ├── repositories/            # Repository implementations
+│   └── services/                # SyncService (push/pull sync coordination)
 ├── domain/                      # Business logic
 │   ├── models/                  # Domain models / entities
-│   └── repositories/            # Repository interfaces (abstract)
+│   ├── repositories/            # Repository interfaces (abstract)
+│   └── services/                # RecurrenceService (lazy instance generation)
 ├── presentation/                # UI layer
 │   ├── auth/                    # Login screens and auth widgets
 │   │   ├── screens/
@@ -84,7 +89,7 @@ lib/
 ### Architecture Pattern
 
 - **Clean Architecture** with 3 layers: data → domain → presentation
-- **Data layer:** Drift DAOs, Supabase client, Go API client, repository implementations
+- **Data layer:** Drift DAOs, Go API client, Supabase SDK (auth), repository implementations, SyncService
 - **Domain layer:** Models/entities, repository interfaces. No framework dependencies here
 - **Presentation layer:** Screens, widgets, and Riverpod providers that connect UI to domain
 - Dependencies flow inward: presentation → domain ← data
