@@ -2,10 +2,24 @@
 
 ## Prerequisites
 
+**All platforms:**
 - Flutter SDK (stable channel)
+- `.env` file with required environment variables (see `.env.example`)
+
+**Android builds only:**
 - Java 17+ (`jdk17-openjdk` on Arch/Manjaro)
 - Android SDK at `~/Android/Sdk` (configured via `flutter config --android-sdk`)
-- `.env` file with required environment variables (see `.env.example`)
+
+## First-time setup (required after every clean checkout)
+
+Generated Dart files (Drift, Freezed, Riverpod) are not committed to the repository. Run this once after cloning or after `flutter clean`:
+
+```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+```
+
+---
 
 ## Environment setup
 
