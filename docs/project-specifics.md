@@ -5,8 +5,8 @@
 ### Frontend
 - **Framework:** Flutter 3.x (latest stable)
 - **Language:** Dart 3.x (latest stable)
-- **Platforms:** iOS, Android, macOS, Windows, Linux
-- **Minimum targets:** iOS 15+, Android API 26+ (Android 8.0), macOS 12+, Windows 10+
+- **V1 platforms:** Linux (desktop), Android
+- **Post-V1 targets:** iOS, macOS, Windows (platform directories not yet generated)
 
 ### State Management
 - **Riverpod** (flutter_riverpod + riverpod_annotation + riverpod_generator)
@@ -17,7 +17,7 @@
 ### Local Storage
 - **Drift** (SQLite wrapper) for all persistent data
 - Define all tables and queries using Drift's Dart-based schema
-- Use DAOs (Data Access Objects) to organize queries by domain (e.g., `TaskDao`, `GoalDao`)
+- Use DAOs (Data Access Objects) to organize queries by domain (e.g., `TaskDao`)
 - Run migrations properly — never drop and recreate tables
 
 ### Backend & Cloud Services
@@ -50,16 +50,13 @@ lib/
 │   │   ├── app_typography.dart
 │   │   ├── app_spacing.dart
 │   │   └── app_theme.dart
-│   ├── constants/               # App-wide constants
-│   ├── utils/                   # Helper functions
-│   └── extensions/              # Dart extensions
+│   └── constants/               # App-wide constants
 ├── data/                        # Data layer
 │   ├── local/                   # Drift database
 │   │   ├── database.dart        # Database definition
 │   │   ├── tables/              # Table definitions
 │   │   └── daos/                # Data Access Objects
 │   ├── remote/                  # API clients
-│   │   ├── supabase_client.dart
 │   │   └── api_client.dart      # Go backend HTTP client
 │   └── repositories/            # Repository implementations
 ├── domain/                      # Business logic
@@ -77,10 +74,7 @@ lib/
 │   │   ├── screens/
 │   │   ├── widgets/
 │   │   └── providers/
-│   ├── goals/                   # Goals screen (future)
-│   │   └── ...
-│   ├── history/                 # History screen (future)
-│   │   └── ...
+│   ├── profile/                 # Profile screen
 │   └── shared/                  # Shared UI components
 │       ├── widgets/             # Reusable widgets (buttons, cards, inputs)
 │       └── layouts/             # App shell, responsive layout, navigation
@@ -156,7 +150,7 @@ lib/
 - Use `AsyncValue` from Riverpod for loading/error/data states in the UI
 - Never catch errors silently — at minimum log them
 - Show user-friendly error messages — never expose stack traces or technical errors
-- Use `Result` pattern or `Either` for operations that can fail in the domain layer
+- Handle errors at the repository/service layer and surface them via `AsyncValue` in providers
 
 ---
 

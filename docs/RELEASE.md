@@ -22,16 +22,14 @@ fish_add_path $ANDROID_HOME/platform-tools
 
 ### Debug build (run on connected device)
 
-```fish
+```bash
 flutter run -d <device-id> --dart-define-from-file=.env
-# or
-fish run.fish  # defaults to linux; use -d flag for android
 ```
 
 ### Release APK
 
-```fish
-fish run.fish build-android-release
+```bash
+flutter build apk --dart-define-from-file=.env
 # Output: build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -60,20 +58,20 @@ fish run.fish build-android-release
 
 ### Debug run
 
-```fish
-fish run.fish
+```bash
+flutter run -d linux --dart-define-from-file=.env
 ```
 
 ### Release build
 
-```fish
-fish run.fish build
+```bash
+flutter build linux --dart-define-from-file=.env
 # Output: build/linux/x64/release/bundle/goalden
 ```
 
 ### Launch built binary
 
-```fish
+```bash
 ./build/linux/x64/release/bundle/goalden &
 ```
 
