@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/theme/goal_colors.dart';
 import '../../../domain/models/goal.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
@@ -33,7 +34,7 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
   Future<void> createGoal({
     required String title,
     String? description,
-    required String color,
+    String? color,
     DateTime? deadline,
     bool starred = false,
   }) async {
@@ -45,6 +46,14 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
     if (userId.isEmpty) return;
 
     final repo = await ref.read(goalRepositoryProvider.future);
+
+    // Auto-suggest a palette color if none was specified.
+    String resolvedColor = color ?? '';
+    if (resolvedColor.isEmpty) {
+      final existing = await repo.getAllGoals();
+      resolvedColor = GoalColors.suggest(existing.length).id;
+    }
+
     final now = DateTime.now().toUtc();
     final goal = Goal(
       id: _uuid.v4(),
@@ -53,7 +62,7 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
       description: description?.trim().isEmpty == true
           ? null
           : description?.trim(),
-      color: color,
+      color: resolvedColor,
       deadline: deadline,
       starred: starred,
       createdAt: now,
