@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/goal_colors.dart';
 import '../providers/goal_provider.dart';
 import '../widgets/goal_form_sheet.dart';
+import '../widgets/milestones_panel.dart';
 
 class GoalDetailScreen extends ConsumerWidget {
   const GoalDetailScreen({super.key, required this.goal});
@@ -193,11 +194,11 @@ class GoalDetailScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                    child: _Panel(
-                                  title: 'Milestones',
-                                  gc: gc,
-                                  placeholder: 'No milestones yet.',
-                                )),
+                                  child: MilestonesPanel(
+                                    goalId: liveGoal.id,
+                                    gc: gc,
+                                  ),
+                                ),
                                 const SizedBox(width: AppSpacing.md),
                                 Expanded(
                                     child: _Panel(
@@ -209,10 +210,9 @@ class GoalDetailScreen extends ConsumerWidget {
                             )
                           : Column(
                               children: [
-                                _Panel(
-                                  title: 'Milestones',
+                                MilestonesPanel(
+                                  goalId: liveGoal.id,
                                   gc: gc,
-                                  placeholder: 'No milestones yet.',
                                 ),
                                 const SizedBox(height: AppSpacing.md),
                                 _Panel(
