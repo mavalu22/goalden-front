@@ -5,17 +5,19 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'daos/goal_dao.dart';
 import 'daos/task_dao.dart';
+import 'tables/goal_table.dart';
 import 'tables/task_table.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Tasks], daos: [TaskDao])
+@DriftDatabase(tables: [Tasks, Goals], daos: [TaskDao, GoalDao])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -43,6 +45,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(tasks, tasks.lastSyncedAt);
             await m.addColumn(tasks, tasks.syncStatus);
             await m.addColumn(tasks, tasks.deletedAt);
+          }
+          if (from < 6) {
+            await m.createTable(goals);
           }
         },
       );
