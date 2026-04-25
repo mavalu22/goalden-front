@@ -29,6 +29,26 @@ final goalTaskCountsProvider =
   return dao.getTaskCountsByGoal();
 });
 
+/// Task stats (open, total, thisWeek) for a specific goal — reactive stream.
+final goalDetailStatsProvider = StreamProvider.family<
+    ({int open, int total, int thisWeek}), String>((ref, goalId) async* {
+  final dao = await ref.watch(taskDaoProvider.future);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final weekStart = today.subtract(Duration(days: today.weekday - 1));
+  final weekEnd = weekStart.add(const Duration(days: 7));
+
+  yield* dao.watchTasksForGoal(goalId).map((entries) {
+    int open = 0, total = 0, thisWeek = 0;
+    for (final e in entries) {
+      total++;
+      if (!e.done) open++;
+      if (!e.date.isBefore(weekStart) && e.date.isBefore(weekEnd)) thisWeek++;
+    }
+    return (open: open, total: total, thisWeek: thisWeek);
+  });
+});
+
 /// Whether the Goals screen is showing archived goals.
 final showArchivedGoalsProvider = StateProvider<bool>((ref) => false);
 
