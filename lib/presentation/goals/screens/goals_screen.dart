@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../providers/goal_provider.dart';
 import '../widgets/goal_card.dart';
+import '../widgets/goal_form_sheet.dart';
 
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
@@ -166,9 +167,7 @@ class _NewGoalButton extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () {
-          // Full create flow is implemented in TASK-112.
-        },
+        onTap: () => showGoalForm(context),
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
@@ -294,7 +293,7 @@ class _EmptyState extends StatelessWidget {
           ),
           if (!showArchived) ...[
             const SizedBox(height: AppSpacing.xl),
-            _NewGoalButton(),
+            Builder(builder: (ctx) => _NewGoalButton()),
           ],
         ],
       ),
