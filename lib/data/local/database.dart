@@ -6,18 +6,20 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'daos/goal_dao.dart';
+import 'daos/milestone_dao.dart';
 import 'daos/task_dao.dart';
 import 'tables/goal_table.dart';
+import 'tables/milestone_table.dart';
 import 'tables/task_table.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [Tasks, Goals], daos: [TaskDao, GoalDao])
+@DriftDatabase(tables: [Tasks, Goals, Milestones], daos: [TaskDao, GoalDao, MilestoneDao])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +53,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await m.addColumn(tasks, tasks.goalId);
+          }
+          if (from < 8) {
+            await m.createTable(milestones);
           }
         },
       );

@@ -129,9 +129,12 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
   }
 
   Future<void> deleteGoal(String id) async {
-    // Unlink tasks before soft-deleting the goal so tasks are not orphaned.
+    // Unlink tasks (not deleted) and tombstone milestones before soft-deleting.
     final taskRepo = await ref.read(taskRepositoryProvider.future);
     await taskRepo.unlinkTasksFromGoal(id);
+
+    final milestoneRepo = await ref.read(milestoneRepositoryProvider.future);
+    await milestoneRepo.deleteMilestonesForGoal(id);
 
     final repo = await ref.read(goalRepositoryProvider.future);
     await repo.deleteGoal(id);
