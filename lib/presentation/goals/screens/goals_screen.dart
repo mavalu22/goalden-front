@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../providers/goal_provider.dart';
 import '../widgets/goal_card.dart';
 import '../widgets/goal_form_sheet.dart';
+import 'goal_detail_screen.dart';
 
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
@@ -134,6 +135,29 @@ class _GoalsView extends ConsumerWidget {
                         goal: goal,
                         openTaskCount: taskCounts.open,
                         totalTaskCount: taskCounts.total,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => GoalDetailScreen(goal: goal),
+                          ),
+                        ),
+                        onEdit: () =>
+                            showGoalEditForm(context, goal: goal),
+                        onToggleStar: () => ref
+                            .read(goalListProvider.notifier)
+                            .updateGoal(
+                              goal.copyWith(starred: !goal.starred),
+                            ),
+                        onArchive: () {
+                          final notifier =
+                              ref.read(goalListProvider.notifier);
+                          if (goal.status == GoalStatus.archived) {
+                            notifier.unarchiveGoal(goal.id);
+                          } else {
+                            notifier.archiveGoal(goal.id);
+                          }
+                        },
+                        onDelete: () =>
+                            _confirmDeleteGoal(context, ref, goal),
                       );
                     },
                     childCount: goals.length,
@@ -156,6 +180,115 @@ class _GoalsView extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+// ── Goal delete confirmation ──────────────────────────────────────────────────
+
+Future<void> _confirmDeleteGoal(
+  BuildContext context,
+  WidgetRef ref,
+  Goal goal,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.6),
+    builder: (ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 360),
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 32,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Delete goal',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Are you sure you want to delete this goal? Linked tasks will be unlinked but not deleted. This cannot be undone.',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    ),
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (confirmed == true && context.mounted) {
+    await ref.read(goalListProvider.notifier).deleteGoal(goal.id);
   }
 }
 
