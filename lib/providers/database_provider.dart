@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/local/database.dart';
 import '../data/local/daos/goal_dao.dart';
+import '../data/local/daos/milestone_dao.dart';
 import '../data/local/daos/task_dao.dart';
 import '../data/repositories/goal_repository_impl.dart';
+import '../data/repositories/milestone_repository_impl.dart';
 import '../data/repositories/task_repository_impl.dart';
 import '../domain/repositories/goal_repository.dart';
+import '../domain/repositories/milestone_repository.dart';
 import '../domain/repositories/task_repository.dart';
 import '../domain/services/recurrence_service.dart';
 import 'auth_provider.dart';
@@ -72,4 +75,17 @@ final goalDaoProvider = FutureProvider<GoalDao>((ref) async {
 final goalRepositoryProvider = FutureProvider<GoalRepository>((ref) async {
   final dao = await ref.watch(goalDaoProvider.future);
   return GoalRepositoryImpl(dao);
+});
+
+/// Provides the [MilestoneDao] — waits for the database to be ready.
+final milestoneDaoProvider = FutureProvider<MilestoneDao>((ref) async {
+  final db = await ref.watch(databaseProvider.future);
+  return db.milestoneDao;
+});
+
+/// Provides the [MilestoneRepository] implementation.
+final milestoneRepositoryProvider =
+    FutureProvider<MilestoneRepository>((ref) async {
+  final dao = await ref.watch(milestoneDaoProvider.future);
+  return MilestoneRepositoryImpl(dao);
 });
