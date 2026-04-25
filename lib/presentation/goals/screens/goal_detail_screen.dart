@@ -13,11 +13,23 @@ import '../widgets/goal_form_sheet.dart';
 class GoalDetailScreen extends ConsumerWidget {
   const GoalDetailScreen({super.key, required this.goal});
 
+  /// Initial goal passed for the first render. The screen watches
+  /// [goalByIdProvider] to stay in sync with subsequent edits.
   final Goal goal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gc = GoalColors.fromId(goal.color);
+    final liveGoalAsync = ref.watch(goalByIdProvider(goal.id));
+    final liveGoal = liveGoalAsync.valueOrNull ?? goal;
+
+    // Pop back if the goal has been deleted.
+    ref.listen(goalByIdProvider(goal.id), (_, next) {
+      if (next.valueOrNull == null && next is AsyncData<Goal?>) {
+        if (context.mounted) Navigator.of(context).pop();
+      }
+    });
+
+    final gc = GoalColors.fromId(liveGoal.color);
     final statsAsync = ref.watch(goalDetailStatsProvider(goal.id));
 
     return LayoutBuilder(
@@ -100,7 +112,7 @@ class GoalDetailScreen extends ConsumerWidget {
                             ),
                             Expanded(
                               child: Text(
-                                goal.title,
+                                liveGoal.title,
                                 style: TextStyle(
                                   fontFamily: AppTypography.bodyFont,
                                   fontSize: 13,
@@ -126,19 +138,19 @@ class GoalDetailScreen extends ConsumerWidget {
                       padding: EdgeInsets.symmetric(
                           horizontal: horizontalPadding),
                       child: _HeroCard(
-                        goal: goal,
+                        goal: liveGoal,
                         gc: gc,
                         ref: ref,
                         onEdit: () async {
-                          await showGoalEditForm(context, goal: goal);
+                          await showGoalEditForm(context, goal: liveGoal);
                         },
                         onArchive: () {
                           final notifier =
                               ref.read(goalListProvider.notifier);
-                          if (goal.status == GoalStatus.archived) {
-                            notifier.unarchiveGoal(goal.id);
+                          if (liveGoal.status == GoalStatus.archived) {
+                            notifier.unarchiveGoal(liveGoal.id);
                           } else {
-                            notifier.archiveGoal(goal.id);
+                            notifier.archiveGoal(liveGoal.id);
                           }
                           Navigator.of(context).pop();
                         },
@@ -158,7 +170,7 @@ class GoalDetailScreen extends ConsumerWidget {
                         loading: () => const SizedBox.shrink(),
                         error: (_, __) => const SizedBox.shrink(),
                         data: (stats) => _StatsRow(
-                          goal: goal,
+                          goal: liveGoal,
                           gc: gc,
                           open: stats.open,
                           total: stats.total,

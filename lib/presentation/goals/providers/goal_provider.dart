@@ -29,6 +29,13 @@ final goalTaskCountsProvider =
   return dao.getTaskCountsByGoal();
 });
 
+/// Reactive stream for a single goal by id. Emits null if goal is deleted.
+final goalByIdProvider =
+    StreamProvider.family<Goal?, String>((ref, goalId) async* {
+  final repo = await ref.watch(goalRepositoryProvider.future);
+  yield* repo.watchGoalById(goalId);
+});
+
 /// Task stats (open, total, thisWeek) for a specific goal — reactive stream.
 final goalDetailStatsProvider = StreamProvider.family<
     ({int open, int total, int thisWeek}), String>((ref, goalId) async* {
