@@ -92,6 +92,34 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
         .get();
   }
 
+  /// All non-deleted tasks linked to a specific goal.
+  Stream<List<TaskEntry>> watchTasksForGoal(String goalId) {
+    return (select(tasks)
+          ..where(
+            (t) => t.goalId.equals(goalId) & t.deletedAt.isNull(),
+          ))
+        .watch();
+  }
+
+  /// One-shot fetch of task counts (open, total) grouped by goal_id.
+  /// Returns a map of goal_id → (open: int, total: int).
+  Future<Map<String, ({int open, int total})>> getTaskCountsByGoal() async {
+    final rows = await (select(tasks)
+          ..where((t) => t.deletedAt.isNull() & t.goalId.isNotNull()))
+        .get();
+
+    final counts = <String, ({int open, int total})>{};
+    for (final row in rows) {
+      final gid = row.goalId!;
+      final current = counts[gid] ?? (open: 0, total: 0);
+      counts[gid] = (
+        open: current.open + (row.done ? 0 : 1),
+        total: current.total + 1,
+      );
+    }
+    return counts;
+  }
+
   /// Whether a recurring instance (including soft-deleted ones) exists for
   /// [sourceId] on [date].
   ///

@@ -21,6 +21,17 @@ final archivedGoalsProvider = StreamProvider<List<Goal>>((ref) async* {
   yield* repo.watchArchivedGoals();
 });
 
+/// Task counts (open, total) for each goal id.
+/// Returns a map of goalId → (open: int, total: int).
+final goalTaskCountsProvider =
+    FutureProvider<Map<String, ({int open, int total})>>((ref) async {
+  final dao = await ref.watch(taskDaoProvider.future);
+  return dao.getTaskCountsByGoal();
+});
+
+/// Whether the Goals screen is showing archived goals.
+final showArchivedGoalsProvider = StateProvider<bool>((ref) => false);
+
 final goalListProvider = AsyncNotifierProvider<GoalListNotifier, List<Goal>>(
   GoalListNotifier.new,
 );
