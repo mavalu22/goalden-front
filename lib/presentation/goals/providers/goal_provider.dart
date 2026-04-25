@@ -6,6 +6,8 @@ import '../../../domain/models/goal.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
 
+export '../../../domain/models/goal.dart' show Goal, GoalStatus;
+
 const _maxTitleLength = 500;
 const _uuid = Uuid();
 
@@ -89,6 +91,10 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
   }
 
   Future<void> deleteGoal(String id) async {
+    // Unlink tasks before soft-deleting the goal so tasks are not orphaned.
+    final taskRepo = await ref.read(taskRepositoryProvider.future);
+    await taskRepo.unlinkTasksFromGoal(id);
+
     final repo = await ref.read(goalRepositoryProvider.future);
     await repo.deleteGoal(id);
   }
