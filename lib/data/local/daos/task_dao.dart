@@ -197,6 +197,23 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
     );
   }
 
+  /// Remove the goal link from every non-deleted task that references [goalId].
+  /// Called when a goal is deleted so its tasks are unlinked rather than removed.
+  Future<void> unlinkTasksFromGoal(String goalId) {
+    final now = DateTime.now().toUtc();
+    return (update(tasks)
+          ..where(
+            (t) => t.goalId.equals(goalId) & t.deletedAt.isNull(),
+          ))
+        .write(
+      TasksCompanion(
+        goalId: const Value(null),
+        updatedAt: Value(now),
+        syncStatus: const Value('pending_update'),
+      ),
+    );
+  }
+
   // ── Sync operations ───────────────────────────────────────────────────────
 
   /// All tasks that need to be pushed to the cloud (syncStatus != 'synced').

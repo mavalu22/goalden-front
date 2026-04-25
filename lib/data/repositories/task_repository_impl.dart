@@ -87,6 +87,10 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
+  Future<void> unlinkTasksFromGoal(String goalId) =>
+      _dao.unlinkTasksFromGoal(goalId);
+
+  @override
   Future<void> deleteOldPendingTasks({int days = 7}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final cutoffLocal = DateTime(cutoff.year, cutoff.month, cutoff.day);
@@ -121,6 +125,7 @@ class TaskRepositoryImpl implements TaskRepository {
       sourceTaskId: e.sourceTaskId,
       startTimeMinutes: e.startTimeMinutes,
       endTimeMinutes: e.endTimeMinutes,
+      goalId: e.goalId,
     );
   }
 
@@ -144,6 +149,7 @@ class TaskRepositoryImpl implements TaskRepository {
       sourceTaskId: Value(t.sourceTaskId),
       startTimeMinutes: Value(t.startTimeMinutes),
       endTimeMinutes: Value(t.endTimeMinutes),
+      goalId: Value(t.goalId),
     );
   }
 

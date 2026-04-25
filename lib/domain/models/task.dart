@@ -29,5 +29,7 @@ abstract class Task with _$Task {
     int? startTimeMinutes,
     /// Optional end time stored as minutes from midnight (0–1439).
     int? endTimeMinutes,
+    /// Optional reference to the Goal this task belongs to.
+    String? goalId,
   }) = _Task;
 }

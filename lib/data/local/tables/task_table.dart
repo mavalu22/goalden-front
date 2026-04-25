@@ -42,6 +42,9 @@ class Tasks extends Table {
   /// source task's id. Null for original (non-instance) tasks.
   TextColumn get sourceTaskId => text().nullable()();
 
+  /// Optional reference to the Goal this task belongs to.
+  TextColumn get goalId => text().nullable()();
+
   /// Optional start time in minutes from midnight (0–1439).
   IntColumn get startTimeMinutes => integer().nullable()();
 
