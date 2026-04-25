@@ -13,6 +13,9 @@ abstract class GoalRepository {
   /// Fetch a single goal by id.
   Future<Goal?> getGoalById(String id);
 
+  /// Reactive stream for a single non-deleted goal by id.
+  Stream<Goal?> watchGoalById(String id);
+
   /// Persist a new goal.
   Future<void> createGoal(Goal goal);
 

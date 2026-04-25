@@ -33,6 +33,10 @@ class GoalRepositoryImpl implements GoalRepository {
   }
 
   @override
+  Stream<Goal?> watchGoalById(String id) =>
+      _dao.watchGoalById(id).map((e) => e != null ? _fromEntry(e) : null);
+
+  @override
   Future<void> createGoal(Goal goal) {
     final now = DateTime.now().toUtc();
     return _dao.insertGoal(

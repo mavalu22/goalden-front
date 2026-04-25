@@ -52,6 +52,13 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
     return (select(goals)..where((g) => g.id.equals(id))).getSingleOrNull();
   }
 
+  /// Reactive stream for a single non-deleted goal by id.
+  Stream<GoalEntry?> watchGoalById(String id) {
+    return (select(goals)
+          ..where((g) => g.id.equals(id) & g.deletedAt.isNull()))
+        .watchSingleOrNull();
+  }
+
   /// One-shot fetch of all non-deleted goals.
   Future<List<GoalEntry>> getAllGoals() {
     return (select(goals)..where((g) => g.deletedAt.isNull())).get();
