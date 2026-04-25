@@ -2,8 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/local/database.dart';
+import '../data/local/daos/goal_dao.dart';
 import '../data/local/daos/task_dao.dart';
+import '../data/repositories/goal_repository_impl.dart';
 import '../data/repositories/task_repository_impl.dart';
+import '../domain/repositories/goal_repository.dart';
 import '../domain/repositories/task_repository.dart';
 import '../domain/services/recurrence_service.dart';
 import 'auth_provider.dart';
@@ -57,4 +60,16 @@ final overdueCleanupProvider = FutureProvider<void>((ref) async {
     // Cleanup is best-effort — a failure is non-fatal.
     debugPrint('[overdueCleanup] Failed to clean up old pending tasks: $e');
   }
+});
+
+/// Provides the [GoalDao] — waits for the database to be ready.
+final goalDaoProvider = FutureProvider<GoalDao>((ref) async {
+  final db = await ref.watch(databaseProvider.future);
+  return db.goalDao;
+});
+
+/// Provides the [GoalRepository] implementation.
+final goalRepositoryProvider = FutureProvider<GoalRepository>((ref) async {
+  final dao = await ref.watch(goalDaoProvider.future);
+  return GoalRepositoryImpl(dao);
 });
