@@ -8,7 +8,6 @@ import '../../../core/theme/app_typography.dart';
 import '../../../domain/models/task.dart';
 import '../providers/week_provider.dart';
 import '../widgets/day_card.dart';
-import '../widgets/day_column.dart';
 
 class WeekScreen extends ConsumerWidget {
   const WeekScreen({super.key});
@@ -153,49 +152,27 @@ class _DesktopWeekView extends ConsumerWidget {
 
     return Column(
       children: [
-        // Week navigation bar
         const Padding(
           padding: EdgeInsets.fromLTRB(
+            AppSpacing.xxxl,
             AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.lg,
+            AppSpacing.xxxl,
             AppSpacing.md,
           ),
           child: _WeekNavBar(),
         ),
-        // Day columns
         Expanded(
           child: tasksAsync.when(
-            data: (tasks) {
-              if (tasks.isEmpty) {
-                return const _WeekEmptyState();
-              }
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  0,
-                  AppSpacing.lg,
-                  AppSpacing.lg,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (int i = 0; i < 7; i++) ...[
-                      if (i > 0) const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: DayColumn(
-                          date: weekStart.add(Duration(days: i)),
-                          tasks: _tasksForDate(
-                            tasks,
-                            weekStart.add(Duration(days: i)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            },
+            data: (tasks) => ListView.builder(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxxl, vertical: AppSpacing.xs),
+              itemCount: 7,
+              itemBuilder: (context, index) {
+                final date = weekStart.add(Duration(days: index));
+                final dayTasks = _tasksForDate(tasks, date);
+                return DayCard(date: date, tasks: dayTasks);
+              },
+            ),
             loading: () => const Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.golden),
