@@ -6,7 +6,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../domain/models/task.dart';
+import '../../../core/theme/goal_colors.dart' show GoalColors;
+import '../../../domain/models/task.dart' show TaskRecurrence;
+import '../../goals/providers/goal_provider.dart';
 import '../../shared/widgets/pressable.dart';
 import '../providers/today_provider.dart';
 
@@ -136,6 +138,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   String? _timeError;
+  String? _selectedGoalId;
 
   bool _isSubmitting = false;
   bool get _isEditing => widget.task != null;
@@ -150,7 +153,8 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
           _recurrence != t.recurrence ||
           !_setEquals(_recurrenceDays, Set<int>.from(t.recurrenceDays)) ||
           _toMinutes(_startTime) != t.startTimeMinutes ||
-          _toMinutes(_endTime) != t.endTimeMinutes;
+          _toMinutes(_endTime) != t.endTimeMinutes ||
+          _selectedGoalId != t.goalId;
     }
     // Create mode: dirty if the user typed anything in the title
     return _titleController.text.trim().isNotEmpty;
@@ -241,6 +245,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       _priority = t.priority;
       _recurrence = t.recurrence;
       _recurrenceDays = Set<int>.from(t.recurrenceDays);
+      _selectedGoalId = t.goalId;
       _startTime = t.startTimeMinutes != null
           ? TimeOfDay(
               hour: t.startTimeMinutes! ~/ 60,
@@ -380,6 +385,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
               recurrenceDays: days,
               startTimeMinutes: _toMinutes(_startTime),
               endTimeMinutes: _toMinutes(_endTime),
+              goalId: _selectedGoalId,
             ),
           );
     } else {
@@ -392,6 +398,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
             recurrenceDays: days,
             startTimeMinutes: _toMinutes(_startTime),
             endTimeMinutes: _toMinutes(_endTime),
+            goalId: _selectedGoalId,
           );
     }
     if (mounted) Navigator.of(context).pop();
@@ -669,6 +676,16 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
             }),
           ),
         ],
+        const SizedBox(height: AppSpacing.lg),
+
+        // Goal field
+        const _FieldLabel('Goal'),
+        const SizedBox(height: AppSpacing.xs),
+        _GoalPickerField(
+          selectedGoalId: _selectedGoalId,
+          onGoalSelected: (id) => setState(() => _selectedGoalId = id),
+        ),
+
         const SizedBox(height: AppSpacing.xxxl),
 
         // Metadata (edit mode only)
@@ -760,6 +777,236 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
           vertical: AppSpacing.md,
         ),
       );
+}
+
+// ─── Goal picker field ────────────────────────────────────────────────────────
+
+class _GoalPickerField extends ConsumerWidget {
+  const _GoalPickerField({
+    required this.selectedGoalId,
+    required this.onGoalSelected,
+  });
+
+  final String? selectedGoalId;
+  final ValueChanged<String?> onGoalSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goalsAsync = ref.watch(activeGoalsProvider);
+    final goals = goalsAsync.valueOrNull ?? [];
+    final selectedGoal = selectedGoalId != null
+        ? goals.where((g) => g.id == selectedGoalId).firstOrNull
+        : null;
+    final gc = selectedGoal != null
+        ? GoalColors.fromId(selectedGoal.color)
+        : null;
+
+    return Pressable(
+      onTap: () async {
+        final picked = await showDialog<String?>(
+          context: context,
+          builder: (_) => _GoalPickerDialog(
+            goals: goals,
+            selectedGoalId: selectedGoalId,
+          ),
+        );
+        if (picked != null) {
+          // picked == '' means "clear"
+          onGoalSelected(picked.isEmpty ? null : picked);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      hoverColor: AppColors.golden.withValues(alpha: 0.06),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: gc != null ? gc.base.withValues(alpha: 0.6) : AppColors.border,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              if (gc != null) ...[
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: gc.base,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+              ] else ...[
+                const Icon(Icons.flag_outlined,
+                    size: 16, color: AppColors.textMuted),
+                const SizedBox(width: AppSpacing.sm),
+              ],
+              Expanded(
+                child: Text(
+                  selectedGoal?.title ?? 'No goal',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 14,
+                    color: selectedGoal != null
+                        ? AppColors.textPrimary
+                        : AppColors.textMuted,
+                  ),
+                ),
+              ),
+              if (selectedGoalId != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Pressable(
+                  onTap: () => onGoalSelected(null),
+                  borderRadius: BorderRadius.circular(20),
+                  hoverColor: AppColors.error.withValues(alpha: 0.1),
+                  child: const Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Icon(Icons.close, size: 14, color: AppColors.textMuted),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalPickerDialog extends StatelessWidget {
+  const _GoalPickerDialog({
+    required this.goals,
+    required this.selectedGoalId,
+  });
+
+  final List<Goal> goals;
+  final String? selectedGoalId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Link to Goal',
+              style: TextStyle(
+                fontFamily: AppTypography.displayFont,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            if (goals.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                child: Text(
+                  'No active goals.',
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 320),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    // No goal option
+                    ListTile(
+                      dense: true,
+                      onTap: () => Navigator.of(context).pop(''),
+                      leading: const Icon(Icons.remove_circle_outline,
+                          size: 16, color: AppColors.textMuted),
+                      title: const Text(
+                        'No goal',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      trailing: selectedGoalId == null
+                          ? const Icon(Icons.check,
+                              size: 16, color: AppColors.golden)
+                          : null,
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    for (final goal in goals) ...[
+                      _GoalOption(
+                        goal: goal,
+                        isSelected: goal.id == selectedGoalId,
+                        onTap: () => Navigator.of(context).pop(goal.id),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalOption extends StatelessWidget {
+  const _GoalOption({
+    required this.goal,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Goal goal;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final gc = GoalColors.fromId(goal.color);
+    return ListTile(
+      dense: true,
+      onTap: onTap,
+      leading: Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: gc.base,
+          shape: BoxShape.circle,
+        ),
+      ),
+      title: Text(
+        goal.title,
+        style: const TextStyle(
+          fontFamily: AppTypography.bodyFont,
+          fontSize: 13,
+          color: AppColors.textPrimary,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check, size: 16, color: AppColors.golden)
+          : null,
+    );
+  }
 }
 
 // ─── Field label ──────────────────────────────────────────────────────────────
