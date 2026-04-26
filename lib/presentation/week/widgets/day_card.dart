@@ -146,7 +146,7 @@ class _DayCardState extends ConsumerState<DayCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Day name + progress + add button
+                  // Day name + progress counter + add button
                   Row(
                     children: [
                       Expanded(
@@ -171,7 +171,17 @@ class _DayCardState extends ConsumerState<DayCard> {
                         ),
                       ),
                       if (total > 0) ...[
-                        _ProgressCounter(completed: completed, total: total),
+                        Text(
+                          '$completed/$total',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: completed > 0
+                                ? AppColors.golden
+                                : AppColors.textMuted,
+                          ),
+                        ),
                         const SizedBox(width: AppSpacing.sm),
                       ],
                       if (!_isPast)
@@ -196,6 +206,11 @@ class _DayCardState extends ConsumerState<DayCard> {
                         ),
                     ],
                   ),
+                  // Segmented goal progress bar
+                  if (total > 0) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    _GoalSegmentBar(tasks: widget.tasks),
+                  ],
                   // Divider between header and task list
                   if (widget.tasks.isNotEmpty || _showQuickAdd) ...[
                     const SizedBox(height: AppSpacing.sm),
@@ -332,44 +347,63 @@ class _DayCardState extends ConsumerState<DayCard> {
   }
 }
 
-// ─── Progress counter ─────────────────────────────────────────────────────────
+// ─── Goal segment bar ─────────────────────────────────────────────────────────
 
-class _ProgressCounter extends StatelessWidget {
-  const _ProgressCounter({required this.completed, required this.total});
+class _GoalSegmentBar extends ConsumerWidget {
+  const _GoalSegmentBar({required this.tasks});
 
-  final int completed;
-  final int total;
+  final List<Task> tasks;
 
   @override
-  Widget build(BuildContext context) {
-    final ratio = total > 0 ? completed / total : 0.0;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '$completed/$total',
-          style: TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: completed > 0 ? AppColors.golden : AppColors.textMuted,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goalColorMap = ref.watch(goalColorMapProvider);
+    final total = tasks.length;
+    if (total == 0) return const SizedBox.shrink();
+
+    // Count tasks per goalId; null goalId → neutral bucket
+    final counts = <String?, int>{};
+    for (final t in tasks) {
+      counts[t.goalId] = (counts[t.goalId] ?? 0) + 1;
+    }
+
+    // Build segments: goal segments first (sorted by count desc), then neutral
+    final segments = <({Color color, int count})>[];
+    for (final entry in counts.entries.where((e) => e.key != null)) {
+      final gc = goalColorMap[entry.key];
+      if (gc != null) {
+        segments.add((color: gc.base, count: entry.value));
+      } else {
+        // Goal no longer active or missing — treat as neutral
+        final neutralEntry = segments.where((s) => s.color == AppColors.border);
+        if (neutralEntry.isEmpty) {
+          segments.add((color: AppColors.border, count: entry.value));
+        }
+      }
+    }
+    segments.sort((a, b) => b.count.compareTo(a.count));
+    // Append neutral (no-goal) segment at the end
+    final neutralCount = counts[null] ?? 0;
+    if (neutralCount > 0) {
+      segments.add((color: AppColors.border, count: neutralCount));
+    }
+
+    return Semantics(
+      label: 'Task distribution: ${segments.map((s) => '${s.count} tasks').join(', ')}',
+      child: SizedBox(
+        height: 4,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: Row(
+            children: [
+              for (final seg in segments)
+                Flexible(
+                  flex: seg.count,
+                  child: Container(color: seg.color),
+                ),
+            ],
           ),
         ),
-        const SizedBox(width: 6),
-        SizedBox(
-          width: 28,
-          height: 3,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: ratio,
-              backgroundColor: AppColors.border,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.golden),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
