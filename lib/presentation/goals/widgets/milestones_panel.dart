@@ -8,7 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/goal_colors.dart';
 import '../providers/milestone_provider.dart';
 
-class MilestonesPanel extends ConsumerWidget {
+class MilestonesPanel extends ConsumerStatefulWidget {
   const MilestonesPanel({
     super.key,
     required this.goalId,
@@ -19,8 +19,75 @@ class MilestonesPanel extends ConsumerWidget {
   final GoalColor gc;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final milestonesAsync = ref.watch(milestonesForGoalProvider(goalId));
+  ConsumerState<MilestonesPanel> createState() => _MilestonesPanelState();
+}
+
+class _MilestonesPanelState extends ConsumerState<MilestonesPanel> {
+  late final TextEditingController _newTitleCtrl;
+  late final FocusNode _newFocusNode;
+  DateTime _newDate = DateTime.now();
+  bool _creating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _newTitleCtrl = TextEditingController();
+    _newFocusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _newTitleCtrl.dispose();
+    _newFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitNew() async {
+    final title = _newTitleCtrl.text.trim();
+    if (title.isEmpty) return;
+    if (_creating) return;
+    setState(() => _creating = true);
+    try {
+      await ref
+          .read(milestoneListProvider(widget.goalId).notifier)
+          .createMilestone(
+            goalId: widget.goalId,
+            title: title,
+            date: _newDate,
+          );
+      _newTitleCtrl.clear();
+      setState(() => _newDate = DateTime.now());
+      _newFocusNode.requestFocus();
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+  }
+
+  Future<void> _pickNewDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _newDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      builder: (c, child) => Theme(
+        data: Theme.of(c).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.golden,
+            surface: AppColors.surfaceElevated,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) setState(() => _newDate = picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final milestonesAsync = ref.watch(milestonesForGoalProvider(widget.goalId));
+
+    final gc = widget.gc;
+    final goalId = widget.goalId;
 
     return Container(
       decoration: BoxDecoration(
@@ -95,24 +162,8 @@ class MilestonesPanel extends ConsumerWidget {
               ),
             ),
             data: (milestones) {
-              if (milestones.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(AppSpacing.xl),
-                  child: Text(
-                    'No milestones yet.',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 13,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                );
-              }
-
               final now = DateTime.now();
               final today = DateTime(now.year, now.month, now.day);
-
-              // Find the index of the "next upcoming" milestone.
               final nextUpcomingIndex = milestones.indexWhere(
                 (m) => !m.done && !m.date.isBefore(today),
               );
@@ -124,12 +175,14 @@ class MilestonesPanel extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
+                    // Existing milestones — all pass isLast:false so line
+                    // continues down to the create row.
                     for (int i = 0; i < milestones.length; i++)
                       _MilestoneRow(
                         milestone: milestones[i],
                         gc: gc,
                         isFirst: i == 0,
-                        isLast: i == milestones.length - 1,
+                        isLast: false,
                         isNextUpcoming: i == nextUpcomingIndex,
                         onToggle: () => ref
                             .read(milestoneListProvider(goalId).notifier)
@@ -143,6 +196,17 @@ class MilestonesPanel extends ConsumerWidget {
                             .read(milestoneListProvider(goalId).notifier)
                             .deleteMilestone(milestones[i].id),
                       ),
+
+                    // Inline create row — always last.
+                    _InlineCreateRow(
+                      controller: _newTitleCtrl,
+                      focusNode: _newFocusNode,
+                      selectedDate: _newDate,
+                      isFirst: milestones.isEmpty,
+                      creating: _creating,
+                      onSubmit: _submitNew,
+                      onPickDate: _pickNewDate,
+                    ),
                   ],
                 ),
               );
@@ -365,6 +429,173 @@ class _MilestoneRow extends StatelessWidget {
       if (value == 'delete') onDelete();
     });
   }
+}
+
+// ── Inline create row ─────────────────────────────────────────────────────────
+
+class _InlineCreateRow extends StatelessWidget {
+  const _InlineCreateRow({
+    required this.controller,
+    required this.focusNode,
+    required this.selectedDate,
+    required this.isFirst,
+    required this.creating,
+    required this.onSubmit,
+    required this.onPickDate,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final DateTime selectedDate;
+  final bool isFirst;
+  final bool creating;
+  final VoidCallback onSubmit;
+  final VoidCallback onPickDate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Dashed marker column ───────────────────────────
+            SizedBox(
+              width: 28,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Line above (connects to the last milestone)
+                  if (!isFirst)
+                    Expanded(
+                      child: Center(
+                        child: Container(width: 1, color: AppColors.border),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: AppSpacing.xs),
+
+                  // Dashed circle marker
+                  CustomPaint(
+                    size: const Size(18, 18),
+                    painter: _DashedCirclePainter(),
+                    child: const SizedBox(width: 18, height: 18),
+                  ),
+
+                  // No line below (this is always last)
+                  const SizedBox(height: AppSpacing.xs),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: AppSpacing.sm),
+
+            // ── Input row ──────────────────────────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        style: const TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'New milestone…',
+                          hintStyle: TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 13,
+                            color: AppColors.textMuted,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        onSubmitted: (_) => onSubmit(),
+                        textInputAction: TextInputAction.done,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    // Date picker button
+                    GestureDetector(
+                      onTap: onPickDate,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Text(
+                          DateFormat('MMM d').format(selectedDate),
+                          style: const TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    GestureDetector(
+                      onTap: creating ? null : onSubmit,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Icon(
+                          Icons.add_circle_outline,
+                          size: 16,
+                          color: creating
+                              ? AppColors.textMuted
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Paints a dashed circle outline.
+class _DashedCirclePainter extends CustomPainter {
+  _DashedCirclePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const dashCount = 8;
+    const gapFraction = 0.4;
+    final paint = Paint()
+      ..color = AppColors.textMuted
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 1;
+    const totalAngle = 2 * 3.14159265;
+    const dashAngle = totalAngle / dashCount * (1 - gapFraction);
+    const gapAngle = totalAngle / dashCount * gapFraction;
+
+    double startAngle = -3.14159265 / 2;
+    for (int i = 0; i < dashCount; i++) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        dashAngle,
+        false,
+        paint,
+      );
+      startAngle += dashAngle + gapAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedCirclePainter oldDelegate) => false;
 }
 
 // ── Edit milestone dialog ─────────────────────────────────────────────────────
