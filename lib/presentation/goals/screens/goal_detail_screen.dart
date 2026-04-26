@@ -204,6 +204,7 @@ class GoalDetailScreen extends ConsumerWidget {
                                 Expanded(
                                   child: TasksPanel(
                                     goalId: liveGoal.id,
+                                    goalTitle: liveGoal.title,
                                     gc: gc,
                                   ),
                                 ),
@@ -218,6 +219,7 @@ class GoalDetailScreen extends ConsumerWidget {
                                 const SizedBox(height: AppSpacing.md),
                                 TasksPanel(
                                   goalId: liveGoal.id,
+                                  goalTitle: liveGoal.title,
                                   gc: gc,
                                 ),
                               ],
