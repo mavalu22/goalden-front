@@ -53,6 +53,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
     List<int> recurrenceDays = const [],
     int? startTimeMinutes,
     int? endTimeMinutes,
+    String? goalId,
   }) async {
     if (title.trim().isEmpty || title.trim().length > 500) return;
     if (!_validRecurrenceDays(recurrenceDays)) return;
@@ -68,6 +69,7 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
       createdAt: now,
       startTimeMinutes: startTimeMinutes,
       endTimeMinutes: endTimeMinutes,
+      goalId: goalId,
     );
     final repo = await ref.read(taskRepositoryProvider.future);
     await repo.createTask(task);
