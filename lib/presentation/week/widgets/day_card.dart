@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../domain/models/task.dart';
+import '../../goals/providers/goal_provider.dart';
 import '../../shared/widgets/pressable.dart';
 import '../../today/providers/today_provider.dart';
 import '../../today/widgets/task_form_sheet.dart';
@@ -390,11 +390,28 @@ class _TaskRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isHigh = task.priority == TaskPriority.high && !task.done;
+    final goalColorMap = ref.watch(goalColorMapProvider);
+    final gc = task.goalId != null ? goalColorMap[task.goalId] : null;
+
     final row = AnimatedOpacity(
       duration: const Duration(milliseconds: 200),
       opacity: task.done ? 0.4 : 1.0,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        decoration: gc != null
+            ? BoxDecoration(
+                color: gc.dim,
+                borderRadius: BorderRadius.circular(4),
+                border: Border(
+                  left: BorderSide(color: gc.base, width: 3),
+                ),
+              )
+            : null,
+        child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: gc != null ? AppSpacing.sm : 0,
+          vertical: 3,
+        ),
         child: Row(
           children: [
             // Checkbox
@@ -410,13 +427,15 @@ class _TaskRow extends ConsumerWidget {
                 height: 18,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: task.done ? AppColors.golden : Colors.transparent,
+                  color: task.done
+                      ? (gc?.base ?? AppColors.golden)
+                      : Colors.transparent,
                   border: Border.all(
                     color: task.done
-                        ? AppColors.golden
+                        ? (gc?.base ?? AppColors.golden)
                         : isPast
                             ? AppColors.textMuted
-                            : AppColors.textSecondary,
+                            : (gc?.base ?? AppColors.textSecondary),
                     width: 1.5,
                   ),
                 ),
@@ -487,6 +506,7 @@ class _TaskRow extends ConsumerWidget {
             ],
           ],
         ),
+      ),
       ),
     );
 
