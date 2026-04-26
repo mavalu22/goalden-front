@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../goals/screens/goals_screen.dart';
+import '../../history/screens/history_screen.dart';
 import '../../today/screens/today_screen.dart';
 import '../../week/screens/week_screen.dart';
 
@@ -43,26 +42,7 @@ final navDestinations = <NavDestination>[
     label: 'History',
     icon: Icons.history,
     activeIcon: Icons.history,
-    placeholder: _PlaceholderScreen(label: 'History'),
+    placeholder: HistoryScreen(),
   ),
 ];
 
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontFamily: AppTypography.bodyFont,
-          fontSize: 18,
-          color: AppColors.textMuted,
-        ),
-      ),
-    );
-  }
-}
