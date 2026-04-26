@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../domain/models/task.dart';
+import '../../goals/providers/goal_provider.dart';
 import '../../shared/widgets/pressable.dart';
 import '../providers/today_provider.dart';
 
@@ -94,13 +94,25 @@ class _PendingSectionContent extends StatelessWidget {
 }
 
 class _PendingTaskRow extends ConsumerWidget {
+
   const _PendingTaskRow({required this.task});
 
   final Task task;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
+    final goalColorMap = ref.watch(goalColorMapProvider);
+    final gc = task.goalId != null ? goalColorMap[task.goalId] : null;
+
+    return Container(
+      decoration: gc != null
+          ? BoxDecoration(
+              border: Border(
+                left: BorderSide(color: gc.base, width: 3),
+              ),
+            )
+          : null,
+      child: Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.sm,
@@ -119,7 +131,7 @@ class _PendingTaskRow extends ConsumerWidget {
                 shape: BoxShape.circle,
                 color: Colors.transparent,
                 border: Border.all(
-                  color: AppColors.golden,
+                  color: gc?.base ?? AppColors.golden,
                   width: 1.5,
                 ),
               ),
@@ -185,6 +197,7 @@ class _PendingTaskRow extends ConsumerWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
