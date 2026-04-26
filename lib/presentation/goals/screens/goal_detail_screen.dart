@@ -10,6 +10,7 @@ import '../../../core/theme/goal_colors.dart';
 import '../providers/goal_provider.dart';
 import '../widgets/goal_form_sheet.dart';
 import '../widgets/milestones_panel.dart';
+import '../widgets/tasks_panel.dart';
 
 class GoalDetailScreen extends ConsumerWidget {
   const GoalDetailScreen({super.key, required this.goal});
@@ -201,11 +202,11 @@ class GoalDetailScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: AppSpacing.md),
                                 Expanded(
-                                    child: _Panel(
-                                  title: 'Tasks',
-                                  gc: gc,
-                                  placeholder: 'No tasks linked yet.',
-                                )),
+                                  child: TasksPanel(
+                                    goalId: liveGoal.id,
+                                    gc: gc,
+                                  ),
+                                ),
                               ],
                             )
                           : Column(
@@ -215,10 +216,9 @@ class GoalDetailScreen extends ConsumerWidget {
                                   gc: gc,
                                 ),
                                 const SizedBox(height: AppSpacing.md),
-                                _Panel(
-                                  title: 'Tasks',
+                                TasksPanel(
+                                  goalId: liveGoal.id,
                                   gc: gc,
-                                  placeholder: 'No tasks linked yet.',
                                 ),
                               ],
                             ),
@@ -631,66 +631,3 @@ class _DeadlineStat extends StatelessWidget {
   }
 }
 
-// ── Panel ─────────────────────────────────────────────────────────────────────
-
-class _Panel extends StatelessWidget {
-  const _Panel({
-    required this.title,
-    required this.gc,
-    required this.placeholder,
-  });
-
-  final String title;
-  final GoalColor gc;
-  final String placeholder;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border(
-          top: BorderSide(color: gc.base, width: 2),
-          left: const BorderSide(color: AppColors.border),
-          right: const BorderSide(color: AppColors.border),
-          bottom: const BorderSide(color: AppColors.border),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.md,
-            ),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.border),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Text(
-              placeholder,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 13,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
