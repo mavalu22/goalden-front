@@ -9,6 +9,7 @@ import '../../../providers/database_provider.dart';
 
 export '../../../domain/models/goal.dart' show Goal, GoalStatus;
 export '../../../domain/models/task.dart' show Task, TaskPriority;
+export '../../../core/theme/goal_colors.dart' show GoalColor;
 
 const _maxTitleLength = 500;
 const _uuid = Uuid();
@@ -16,6 +17,12 @@ const _uuid = Uuid();
 final activeGoalsProvider = StreamProvider<List<Goal>>((ref) async* {
   final repo = await ref.watch(goalRepositoryProvider.future);
   yield* repo.watchActiveGoals();
+});
+
+/// Map of goalId → GoalColor for all active goals. Used to colorize task rows.
+final goalColorMapProvider = Provider<Map<String, GoalColor>>((ref) {
+  final goals = ref.watch(activeGoalsProvider).valueOrNull ?? [];
+  return {for (final g in goals) g.id: GoalColors.fromId(g.color)};
 });
 
 final archivedGoalsProvider = StreamProvider<List<Goal>>((ref) async* {

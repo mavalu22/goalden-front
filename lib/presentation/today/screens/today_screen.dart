@@ -8,7 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../domain/models/task.dart' show Task;
+import '../../goals/providers/goal_provider.dart' show goalColorMapProvider, Task;
 import '../providers/today_provider.dart';
 import '../../week/providers/week_provider.dart' show tasksForDateProvider;
 import '../utils/daily_quote.dart';
@@ -98,6 +98,14 @@ class _MobileTodayView extends ConsumerWidget {
                         ),
                         child: PendingSection(),
                       ),
+                      if (tasks.any((t) =>
+                          t.startTimeMinutes != null &&
+                          t.endTimeMinutes != null))
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg),
+                          child: _DayTimeline(tasks: tasks),
+                        ),
                       _TaskList(tasks: tasks),
                     ],
                   ),
@@ -166,9 +174,25 @@ class _DesktopTodayView extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           const PendingSection(),
           tasksAsync.when(
-            data: (tasks) => tasks.isEmpty
-                ? const _EmptyState()
-                : _TaskList(tasks: tasks),
+            data: (tasks) {
+              final timed = tasks
+                  .where((t) =>
+                      t.startTimeMinutes != null && t.endTimeMinutes != null)
+                  .toList();
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (timed.isNotEmpty) ...[
+                    _DayTimeline(tasks: tasks),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+                  if (tasks.isEmpty)
+                    const _EmptyState()
+                  else
+                    _TaskList(tasks: tasks),
+                ],
+              );
+            },
             loading: () => const _TaskListSkeleton(),
             error: (_, __) => const _EmptyState(),
           ),
@@ -472,6 +496,167 @@ class _SkeletonItem extends StatelessWidget {
             duration: const Duration(milliseconds: 1200),
             color: AppColors.border,
           ),
+    );
+  }
+}
+
+// ─── Day timeline ribbon ──────────────────────────────────────────────────────
+
+class _DayTimeline extends ConsumerWidget {
+  const _DayTimeline({required this.tasks});
+
+  final List<Task> tasks;
+
+  static const _startHour = 6;
+  static const _endHour = 23;
+  static const _totalMinutes = (_endHour - _startHour) * 60;
+  static const _ribbonHeight = 72.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timed = tasks
+        .where((t) => t.startTimeMinutes != null && t.endTimeMinutes != null)
+        .toList();
+    if (timed.isEmpty) return const SizedBox.shrink();
+
+    final goalColorMap = ref.watch(goalColorMapProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+                AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+            child: Text(
+              'SCHEDULED',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          SizedBox(
+            height: _ribbonHeight,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final totalWidth = constraints.maxWidth;
+                return Stack(
+                  children: [
+                    // Hour tick marks
+                    ...List.generate(
+                      _endHour - _startHour + 1,
+                      (i) {
+                        final hour = _startHour + i;
+                        final fraction = (i * 60) / _totalMinutes;
+                        final x = fraction * totalWidth;
+                        return Positioned(
+                          left: x,
+                          top: 0,
+                          bottom: 0,
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 1,
+                                height: hour % 6 == 0 ? 12.0 : 6.0,
+                                color: AppColors.border,
+                              ),
+                              if (hour % 6 == 0)
+                                Text(
+                                  hour == 12
+                                      ? '12p'
+                                      : hour > 12
+                                          ? '${hour - 12}p'
+                                          : '${hour}a',
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFont,
+                                    fontSize: 9,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    // Task blocks
+                    ...timed.map((task) {
+                      final startMin =
+                          (task.startTimeMinutes! - _startHour * 60)
+                              .clamp(0, _totalMinutes);
+                      final endMin =
+                          (task.endTimeMinutes! - _startHour * 60)
+                              .clamp(0, _totalMinutes);
+                      final left = (startMin / _totalMinutes) * totalWidth;
+                      final width =
+                          ((endMin - startMin) / _totalMinutes) * totalWidth;
+                      final gc = task.goalId != null
+                          ? goalColorMap[task.goalId]
+                          : null;
+                      final blockColor =
+                          gc?.base ?? AppColors.textMuted;
+                      final bgColor = gc?.dim ?? AppColors.surfaceElevated;
+
+                      return Positioned(
+                        left: left,
+                        width: width.clamp(24.0, double.infinity),
+                        top: 20,
+                        bottom: 4,
+                        child: GestureDetector(
+                          onTap: () => showTaskEditForm(context, task: task),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 1),
+                              decoration: BoxDecoration(
+                                color: bgColor,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border(
+                                  left: BorderSide(
+                                      color: blockColor, width: 2),
+                                  top: BorderSide(
+                                      color: blockColor.withValues(alpha: 0.3)),
+                                  right: BorderSide(
+                                      color: blockColor.withValues(alpha: 0.3)),
+                                  bottom: BorderSide(
+                                      color: blockColor.withValues(alpha: 0.3)),
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 2),
+                              child: Text(
+                                task.title,
+                                style: TextStyle(
+                                  fontFamily: AppTypography.bodyFont,
+                                  fontSize: 9,
+                                  color: blockColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

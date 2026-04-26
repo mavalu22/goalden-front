@@ -7,7 +7,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../domain/models/task.dart';
+import '../../goals/providers/goal_provider.dart';
 import '../providers/today_provider.dart';
 import 'postpone_sheet.dart';
 import '../../shared/widgets/delete_confirmation_dialog.dart';
@@ -171,6 +171,10 @@ class _TaskTileState extends ConsumerState<TaskTile>
   Widget build(BuildContext context) {
     final isCompleted = widget.task.done;
     final isHigh = widget.task.priority == TaskPriority.high && !isCompleted;
+    final goalColorMap = ref.watch(goalColorMapProvider);
+    final goalColor = widget.task.goalId != null
+        ? goalColorMap[widget.task.goalId]
+        : null;
 
     final tile = ClipRect(
       child: Slidable(
@@ -290,15 +294,26 @@ class _TaskTileState extends ConsumerState<TaskTile>
                     vertical: AppSpacing.lg,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceElevated,
+                    color: goalColor != null
+                        ? goalColor.dim
+                        : AppColors.surfaceElevated,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _rowHovered
+                    border: () {
+                      final sideColor = _rowHovered
                           ? AppColors.goldenBorder.withValues(alpha: 0.5)
                           : isHigh
                               ? AppColors.goldenBorder
-                              : AppColors.border,
-                    ),
+                              : AppColors.border;
+                      if (goalColor != null) {
+                        return Border(
+                          top: BorderSide(color: sideColor),
+                          right: BorderSide(color: sideColor),
+                          bottom: BorderSide(color: sideColor),
+                          left: BorderSide(color: goalColor.base, width: 3),
+                        );
+                      }
+                      return Border.all(color: sideColor);
+                    }(),
                   ),
                   child: Stack(
                     children: [
