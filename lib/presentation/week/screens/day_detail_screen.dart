@@ -6,7 +6,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../domain/models/task.dart';
+import '../../goals/providers/goal_provider.dart';
 import '../../shared/widgets/pressable.dart';
 import '../../today/providers/today_provider.dart';
 import '../../today/utils/task_sort.dart';
@@ -375,22 +375,34 @@ class _TaskList extends ConsumerWidget {
 
 // ─── Read-only task row (past days) ──────────────────────────────────────────
 
-class _ReadOnlyTaskRow extends StatelessWidget {
+class _ReadOnlyTaskRow extends ConsumerWidget {
   const _ReadOnlyTaskRow({required this.task});
 
   final Task task;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goalColorMap = ref.watch(goalColorMapProvider);
+    final gc = task.goalId != null ? goalColorMap[task.goalId] : null;
+    final checkColor = gc?.base ?? AppColors.golden;
+    final borderColor = gc?.base ?? AppColors.border;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: gc?.dim ?? AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: gc != null
+            ? Border(
+                top: const BorderSide(color: AppColors.border),
+                right: const BorderSide(color: AppColors.border),
+                bottom: const BorderSide(color: AppColors.border),
+                left: BorderSide(color: gc.base, width: 3),
+              )
+            : Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -400,9 +412,9 @@ class _ReadOnlyTaskRow extends StatelessWidget {
             height: 22,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: task.done ? AppColors.golden : Colors.transparent,
+              color: task.done ? checkColor : Colors.transparent,
               border: Border.all(
-                color: task.done ? AppColors.golden : AppColors.border,
+                color: task.done ? checkColor : borderColor,
                 width: 1.5,
               ),
             ),
