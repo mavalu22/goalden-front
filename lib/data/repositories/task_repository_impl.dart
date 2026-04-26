@@ -91,6 +91,12 @@ class TaskRepositoryImpl implements TaskRepository {
       _dao.unlinkTasksFromGoal(goalId);
 
   @override
+  Stream<List<Task>> watchTasksForGoal(String goalId) =>
+      _dao.watchTasksForGoal(goalId).map(
+            (entries) => entries.map(_fromEntry).toList(),
+          );
+
+  @override
   Future<void> deleteOldPendingTasks({int days = 7}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final cutoffLocal = DateTime(cutoff.year, cutoff.month, cutoff.day);

@@ -43,4 +43,7 @@ abstract class TaskRepository {
   /// Unlink all non-deleted tasks that reference [goalId] (set goal_id to null).
   /// Called when a goal is deleted.
   Future<void> unlinkTasksFromGoal(String goalId);
+
+  /// Reactive stream of all non-deleted tasks linked to a specific goal.
+  Stream<List<Task>> watchTasksForGoal(String goalId);
 }

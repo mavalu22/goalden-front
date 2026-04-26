@@ -3,10 +3,12 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/goal_colors.dart';
 import '../../../domain/models/goal.dart';
+import '../../../domain/models/task.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
 
 export '../../../domain/models/goal.dart' show Goal, GoalStatus;
+export '../../../domain/models/task.dart' show Task, TaskPriority;
 
 const _maxTitleLength = 500;
 const _uuid = Uuid();
@@ -34,6 +36,13 @@ final goalByIdProvider =
     StreamProvider.family<Goal?, String>((ref, goalId) async* {
   final repo = await ref.watch(goalRepositoryProvider.future);
   yield* repo.watchGoalById(goalId);
+});
+
+/// Reactive stream of tasks linked to a specific goal.
+final tasksForGoalProvider =
+    StreamProvider.family<List<Task>, String>((ref, goalId) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  yield* repo.watchTasksForGoal(goalId);
 });
 
 /// Task stats (open, total, thisWeek) for a specific goal — reactive stream.
