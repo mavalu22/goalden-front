@@ -17,7 +17,6 @@ class LoginScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Listen for auth errors and surface them as snackbars
     ref.listen<AsyncValue<void>>(authActionsProvider, (_, next) {
       next.whenOrNull(
         error: (error, _) {
@@ -62,7 +61,7 @@ bool get _isApplePlatform =>
     defaultTargetPlatform == TargetPlatform.iOS ||
     defaultTargetPlatform == TargetPlatform.macOS;
 
-// ─── Desktop ────────────────────────────────────────────────────────────────
+// ─── Desktop ─────────────────────────────────────────────────────────────────
 
 class _DesktopLoginView extends StatelessWidget {
   const _DesktopLoginView({required this.isLoading, required this.ref});
@@ -105,7 +104,8 @@ class _DesktopLoginView extends StatelessWidget {
                   const _GoldenLogo(fontSize: 28, letterSpacing: 4),
                   const SizedBox(height: AppSpacing.sm),
                   const Text(
-                    'Your moves, simplified.',
+                    'Plan your days. Achieve your goals.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: AppTypography.bodyFont,
                       fontSize: 13,
@@ -113,17 +113,7 @@ class _DesktopLoginView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
-                  // Apple — only on Apple platforms
-                  if (_isApplePlatform) ...[
-                    SocialAuthButton(
-                      label: 'Continue with Apple',
-                      icon: const _AppleIcon(),
-                      onPressed: isLoading ? null : _signInWithApple,
-                      style: SocialAuthButtonStyle.dark,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                  ],
-                  // Google
+                  // Google — always first
                   SocialAuthButton(
                     label: isLoading ? '' : 'Continue with Google',
                     icon: isLoading
@@ -139,13 +129,23 @@ class _DesktopLoginView extends StatelessWidget {
                     onPressed: isLoading ? null : _signInWithGoogle,
                     style: SocialAuthButtonStyle.dark,
                   ),
+                  // Apple — only on Apple platforms
+                  if (_isApplePlatform) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    SocialAuthButton(
+                      label: 'Continue with Apple',
+                      icon: const _AppleIcon(),
+                      onPressed: isLoading ? null : _signInWithApple,
+                      style: SocialAuthButtonStyle.dark,
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.lg),
                   const _OrDivider(),
                   const SizedBox(height: AppSpacing.lg),
-                  // Email
+                  // Email — always secondary
                   Builder(
                     builder: (ctx) => SocialAuthButton(
-                      label: 'Sign in with Email',
+                      label: 'Sign in with email',
                       icon: const Icon(Icons.email_outlined, size: 18),
                       onPressed: isLoading
                           ? null
@@ -155,30 +155,6 @@ class _DesktopLoginView extends StatelessWidget {
                                 ),
                               ),
                       style: SocialAuthButtonStyle.primary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  Pressable(
-                    onTap: () {},
-                    child: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFont,
-                          fontSize: 12,
-                          color: AppColors.textMuted,
-                        ),
-                        children: [
-                          TextSpan(text: 'New to this concept? '),
-                          TextSpan(
-                            text: 'Request access.',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              decoration: TextDecoration.underline,
-                              decorationColor: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
@@ -191,7 +167,7 @@ class _DesktopLoginView extends StatelessWidget {
   }
 }
 
-// ─── Mobile ─────────────────────────────────────────────────────────────────
+// ─── Mobile ───────────────────────────────────────────────────────────────────
 
 class _MobileLoginView extends StatelessWidget {
   const _MobileLoginView({required this.isLoading, required this.ref});
@@ -223,7 +199,7 @@ class _MobileLoginView extends StatelessWidget {
           const _GoldenLogo(fontSize: 40, letterSpacing: 10),
           const SizedBox(height: AppSpacing.sm),
           const Text(
-            'Your week, simplified.',
+            'Plan your days. Achieve your goals.',
             style: TextStyle(
               fontFamily: AppTypography.bodyFont,
               fontSize: 14,
@@ -231,9 +207,9 @@ class _MobileLoginView extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // Google
+          // Google — always first
           SocialAuthButton(
-            label: isLoading ? '' : 'Sign in with Google',
+            label: isLoading ? '' : 'Continue with Google',
             icon: isLoading
                 ? const SizedBox(
                     width: 18,
@@ -247,16 +223,15 @@ class _MobileLoginView extends StatelessWidget {
             onPressed: isLoading ? null : _signInWithGoogle,
             style: SocialAuthButtonStyle.light,
           ),
-          const SizedBox(height: AppSpacing.sm),
           // Apple — only on Apple platforms
           if (_isApplePlatform) ...[
+            const SizedBox(height: AppSpacing.sm),
             SocialAuthButton(
-              label: 'Sign in with Apple',
+              label: 'Continue with Apple',
               icon: const _AppleIcon(color: Colors.white),
               onPressed: isLoading ? null : _signInWithApple,
               style: SocialAuthButtonStyle.black,
             ),
-            const SizedBox(height: AppSpacing.sm),
           ],
           const SizedBox(height: AppSpacing.xxl),
           Center(
@@ -292,7 +267,7 @@ class _MobileLoginView extends StatelessWidget {
   }
 }
 
-// ─── Shared widgets ──────────────────────────────────────────────────────────
+// ─── Shared widgets ───────────────────────────────────────────────────────────
 
 class _GoldenLogo extends StatelessWidget {
   const _GoldenLogo({required this.fontSize, required this.letterSpacing});
@@ -379,7 +354,7 @@ class _AmbientPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ─── Social icons ─────────────────────────────────────────────────────────────
+// ─── Social icons ──────────────────────────────────────────────────────────────
 
 class _GoogleIcon extends StatelessWidget {
   const _GoogleIcon();
