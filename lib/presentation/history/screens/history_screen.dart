@@ -59,12 +59,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final range = ref.watch(historyRangeProvider);
+    final viewMode = ref.watch(historyViewModeProvider);
     final dayData = ref.watch(historyDayDataProvider);
+    final dominantGoals = ref.watch(historyDominantGoalProvider);
+    final goalColorMap = ref.watch(goalColorMapProvider);
     final isLoading = ref.watch(historyTasksProvider).isLoading;
 
     if (!isLoading && _scrolledForRange != range) {
       _scrolledForRange = range;
-      // Clear selection when range changes
       if (_selectedDay != null) setState(() => _selectedDay = null);
       _scrollToEnd();
     }
@@ -72,6 +74,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final rangeStart = range.startDate(today);
+
+    // Precompute dominant goal color per day for goal mode
+    final dominantColors = <DateTime, Color>{};
+    if (viewMode == HistoryViewMode.byGoal) {
+      for (final entry in dominantGoals.entries) {
+        if (entry.value != null) {
+          final gc = goalColorMap[entry.value];
+          if (gc != null) dominantColors[entry.key] = gc.base;
+        }
+      }
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -103,6 +116,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     gap: gap,
                     selectedDate: _selectedDay,
                     onCellTap: (d) => _onCellTap(d, isDesktop),
+                    goalColorMode: viewMode == HistoryViewMode.byGoal,
+                    dominantGoalColors: dominantColors,
                   ),
                 ),
               );
@@ -126,6 +141,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                     ),
                   ),
+                  _ViewModeToggle(
+                    mode: viewMode,
+                    onToggle: () =>
+                        ref.read(historyViewModeProvider.notifier).toggle(),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
                   _RangeSelector(
                     selected: range,
                     onSelect: (r) =>
@@ -155,6 +176,70 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+// ─── View mode toggle ─────────────────────────────────────────────────────────
+
+class _ViewModeToggle extends StatelessWidget {
+  const _ViewModeToggle({required this.mode, required this.onToggle});
+
+  final HistoryViewMode mode;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final isGoal = mode == HistoryViewMode.byGoal;
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Act',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 11,
+                fontWeight:
+                    !isGoal ? FontWeight.w700 : FontWeight.w400,
+                color: !isGoal ? AppColors.golden : AppColors.textMuted,
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                '·',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 11,
+                  color: AppColors.border,
+                ),
+              ),
+            ),
+            Text(
+              'Goal',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 11,
+                fontWeight:
+                    isGoal ? FontWeight.w700 : FontWeight.w400,
+                color: isGoal ? AppColors.golden : AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -227,6 +312,8 @@ class _HeatmapGrid extends StatelessWidget {
     required this.gap,
     required this.onCellTap,
     this.selectedDate,
+    this.goalColorMode = false,
+    this.dominantGoalColors,
   });
 
   final Map<DateTime, DayData> dayData;
@@ -236,6 +323,8 @@ class _HeatmapGrid extends StatelessWidget {
   final double gap;
   final void Function(DateTime) onCellTap;
   final DateTime? selectedDate;
+  final bool goalColorMode;
+  final Map<DateTime, Color>? dominantGoalColors;
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +430,11 @@ class _HeatmapGrid extends StatelessWidget {
         ? DateFormat('MMM d, yyyy').format(date)
         : '${DateFormat('MMM d, yyyy').format(date)} · $completed of $planned completed';
 
-    final fill = _activityColor(completed);
+    final fill = (goalColorMode && dominantGoalColors != null)
+        ? (dominantGoalColors![date] != null
+            ? dominantGoalColors![date]!.withValues(alpha: 0.7)
+            : AppColors.border.withValues(alpha: 0.4))
+        : _activityColor(completed);
 
     return Padding(
       padding: EdgeInsets.only(bottom: gap),

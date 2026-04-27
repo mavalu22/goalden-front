@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../domain/models/task.dart';
 import '../../../providers/database_provider.dart';
@@ -50,6 +51,79 @@ final historyDayTasksProvider =
   final repo = await ref.watch(taskRepositoryProvider.future);
   yield* repo.watchTasksForDate(date);
 });
+
+// ─── View mode (Activity vs By goal) ─────────────────────────────────────────
+
+enum HistoryViewMode { activity, byGoal }
+
+const _kViewModeKey = 'history_view_mode';
+
+/// Loads the persisted view mode preference (async, used once at startup).
+final historyViewModeInitProvider =
+    FutureProvider<HistoryViewMode>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString(_kViewModeKey);
+  return raw == 'byGoal' ? HistoryViewMode.byGoal : HistoryViewMode.activity;
+});
+
+class HistoryViewModeNotifier extends Notifier<HistoryViewMode> {
+  @override
+  HistoryViewMode build() {
+    // Seed from persisted value; will be overwritten once future resolves.
+    ref.listen(historyViewModeInitProvider, (_, next) {
+      if (next.hasValue) state = next.value!;
+    });
+    return HistoryViewMode.activity;
+  }
+
+  Future<void> toggle() async {
+    final next = state == HistoryViewMode.activity
+        ? HistoryViewMode.byGoal
+        : HistoryViewMode.activity;
+    state = next;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _kViewModeKey, next == HistoryViewMode.byGoal ? 'byGoal' : 'activity');
+  }
+}
+
+final historyViewModeProvider =
+    NotifierProvider<HistoryViewModeNotifier, HistoryViewMode>(
+  HistoryViewModeNotifier.new,
+);
+
+/// Per-day dominant goalId: the goal with the most tasks that day.
+/// Returns null for the day when no goal dominates (tied, or no goals).
+final historyDominantGoalProvider =
+    Provider<Map<DateTime, String?>>((ref) {
+  final tasks = ref.watch(historyTasksProvider).valueOrNull ?? [];
+
+  // Accumulate task counts per date per goalId.
+  final goalCounts = <DateTime, Map<String?, int>>{};
+  for (final task in tasks) {
+    final d = task.date.toLocal();
+    final key = DateTime(d.year, d.month, d.day);
+    final counts = goalCounts.putIfAbsent(key, () => {});
+    counts[task.goalId] = (counts[task.goalId] ?? 0) + 1;
+  }
+
+  final result = <DateTime, String?>{};
+  for (final entry in goalCounts.entries) {
+    final goalOnly = Map.fromEntries(
+      entry.value.entries.where((e) => e.key != null),
+    );
+    if (goalOnly.isEmpty) {
+      result[entry.key] = null;
+      continue;
+    }
+    final maxCount = goalOnly.values.reduce((a, b) => a > b ? a : b);
+    final top = goalOnly.entries.where((e) => e.value == maxCount).toList();
+    result[entry.key] = top.length == 1 ? top.first.key : null;
+  }
+  return result;
+});
+
+// ─── Day completion data ──────────────────────────────────────────────────────
 
 final historyDayDataProvider = Provider<Map<DateTime, DayData>>((ref) {
   final tasks = ref.watch(historyTasksProvider).valueOrNull ?? [];
