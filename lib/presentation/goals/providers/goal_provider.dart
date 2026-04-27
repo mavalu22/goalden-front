@@ -6,6 +6,7 @@ import '../../../domain/models/goal.dart';
 import '../../../domain/models/task.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
+import '../../../providers/sync_provider.dart';
 
 export '../../../domain/models/goal.dart' show Goal, GoalStatus;
 export '../../../domain/models/task.dart' show Task, TaskPriority;
@@ -167,6 +168,7 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
       updatedAt: now,
     );
     await repo.createGoal(goal);
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 
   Future<void> updateGoal(Goal goal) async {
@@ -174,16 +176,19 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
     if (trimmed.isEmpty || trimmed.length > _maxTitleLength) return;
     final repo = await ref.read(goalRepositoryProvider.future);
     await repo.updateGoal(goal.copyWith(title: trimmed));
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 
   Future<void> archiveGoal(String id) async {
     final repo = await ref.read(goalRepositoryProvider.future);
     await repo.archiveGoal(id);
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 
   Future<void> unarchiveGoal(String id) async {
     final repo = await ref.read(goalRepositoryProvider.future);
     await repo.unarchiveGoal(id);
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 
   Future<void> deleteGoal(String id) async {
@@ -196,5 +201,6 @@ class GoalListNotifier extends AsyncNotifier<List<Goal>> {
 
     final repo = await ref.read(goalRepositoryProvider.future);
     await repo.deleteGoal(id);
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 }
