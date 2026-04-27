@@ -66,7 +66,7 @@ class _MobileTodayViewState extends ConsumerState<_MobileTodayView> {
           error: (_, __) => const SizedBox.shrink(),
         ),
         const SizedBox(height: AppSpacing.md),
-        // Header
+        // Header row — date/title on left, add task icon on right
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
@@ -74,32 +74,51 @@ class _MobileTodayViewState extends ConsumerState<_MobileTodayView> {
             AppSpacing.lg,
             0,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                dayOfWeek,
-                style: const TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
-                  letterSpacing: 1.5,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      dayOfWeek,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      dateLabel,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.displayFont,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                dateLabel,
-                style: const TextStyle(
-                  fontFamily: AppTypography.displayFont,
-                  fontSize: 34,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  height: 1.1,
+              Pressable(
+                onTap: () => showTaskForm(context),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(Icons.add, color: AppColors.golden, size: 18),
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              _NewTaskButton(onTap: () => showTaskForm(context)),
             ],
           ),
         ),
@@ -165,37 +184,73 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
           ),
           const SizedBox(height: AppSpacing.xxl),
 
-          // Header
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Header row — date/title on left, add task button on right
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text(
-                "TODAY'S FOCUS",
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
-                  letterSpacing: 1.5,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "TODAY'S FOCUS",
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      dateLabel,
+                      style: const TextStyle(
+                        fontFamily: AppTypography.displayFont,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                dateLabel,
-                style: const TextStyle(
-                  fontFamily: AppTypography.displayFont,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  height: 1.1,
+              Pressable(
+                onTap: () => showTaskForm(context),
+                borderRadius: BorderRadius.circular(8),
+                hoverColor: AppColors.golden.withValues(alpha: 0.08),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, color: AppColors.golden, size: 16),
+                      SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'New task',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
 
-          _NewTaskButton(onTap: () => showTaskForm(context)),
-          const SizedBox(height: AppSpacing.lg),
           const PendingSection(),
 
           tasksAsync.when(
@@ -829,47 +884,6 @@ class _ComingUpSection extends ConsumerWidget {
     );
   }
 }
-
-// ─── New task button ──────────────────────────────────────────────────────────
-
-class _NewTaskButton extends StatelessWidget {
-  const _NewTaskButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      hoverColor: AppColors.golden.withValues(alpha: 0.08),
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add, color: AppColors.golden, size: 18),
-            SizedBox(width: AppSpacing.sm),
-            Text(
-              'New task',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 
 // ─── Task list skeleton ───────────────────────────────────────────────────────
 
