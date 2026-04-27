@@ -96,39 +96,6 @@ class _Sidebar extends ConsumerWidget {
             ),
           ),
 
-          // New Goal button
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.sm,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 40,
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.golden,
-                  foregroundColor: AppColors.background,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                ),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text(
-                  'New Goal',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
           // Sync / offline indicator
           _SyncIndicator(ref: ref),
           // User profile + settings
