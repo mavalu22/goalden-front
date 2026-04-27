@@ -26,17 +26,6 @@ class DayColumn extends ConsumerStatefulWidget {
 }
 
 class _DayColumnState extends ConsumerState<DayColumn> {
-  bool _showQuickAdd = false;
-  final _addController = TextEditingController();
-  final _addFocusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _addController.dispose();
-    _addFocusNode.dispose();
-    super.dispose();
-  }
-
   bool get _isToday {
     final now = DateTime.now();
     return widget.date.year == now.year &&
@@ -48,26 +37,6 @@ class _DayColumnState extends ConsumerState<DayColumn> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return widget.date.isBefore(today);
-  }
-
-  Future<void> _submitQuickAdd() async {
-    final title = _addController.text.trim();
-    if (title.isEmpty) {
-      setState(() => _showQuickAdd = false);
-      return;
-    }
-    _addController.clear();
-    setState(() => _showQuickAdd = false);
-    await ref
-        .read(taskActionsProvider.notifier)
-        .createTask(title, date: widget.date);
-  }
-
-  void _showAdd() {
-    setState(() => _showQuickAdd = true);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _addFocusNode.requestFocus();
-    });
   }
 
   @override
@@ -232,41 +201,31 @@ class _DayColumnState extends ConsumerState<DayColumn> {
               },
             ),
           ),
-          // Quick add input or add button
+          // Add task button
           if (!_isPast)
             Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
-              child: _showQuickAdd
-                  ? _QuickAddInput(
-                      controller: _addController,
-                      focusNode: _addFocusNode,
-                      onSubmit: _submitQuickAdd,
-                      onCancel: () {
-                        _addController.clear();
-                        setState(() => _showQuickAdd = false);
-                      },
-                    )
-                  : Pressable(
-                      onTap: _showAdd,
-                      borderRadius: BorderRadius.circular(8),
-                      hoverColor: AppColors.golden.withValues(alpha: 0.08),
-                      child: Container(
-                        width: double.infinity,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.add,
-                            color: AppColors.textSecondary,
-                            size: 16,
-                          ),
-                        ),
-                      ),
+              child: Pressable(
+                onTap: () => showTaskForm(context, defaultDate: widget.date),
+                borderRadius: BorderRadius.circular(8),
+                hoverColor: AppColors.golden.withValues(alpha: 0.08),
+                child: Container(
+                  width: double.infinity,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.add,
+                      color: AppColors.textSecondary,
+                      size: 16,
                     ),
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -475,69 +434,3 @@ class _ColumnTaskRow extends ConsumerWidget {
   }
 }
 
-// ─── Quick add input ──────────────────────────────────────────────────────────
-
-class _QuickAddInput extends StatelessWidget {
-  const _QuickAddInput({
-    required this.controller,
-    required this.focusNode,
-    required this.onSubmit,
-    required this.onCancel,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final VoidCallback onSubmit;
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 32,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.goldenBorder),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 12,
-                color: AppColors.textPrimary,
-              ),
-              decoration: const InputDecoration(
-                hintText: 'New task...',
-                hintStyle: TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 12,
-                  color: AppColors.textMuted,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => onSubmit(),
-            ),
-          ),
-          Pressable(
-            onTap: onCancel,
-            borderRadius: BorderRadius.circular(4),
-            hoverColor: AppColors.textMuted.withValues(alpha: 0.1),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: Icon(Icons.close, size: 14, color: AppColors.textMuted),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

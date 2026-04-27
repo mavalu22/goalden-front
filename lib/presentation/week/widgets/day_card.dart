@@ -26,17 +26,6 @@ class DayCard extends ConsumerStatefulWidget {
 }
 
 class _DayCardState extends ConsumerState<DayCard> {
-  bool _showQuickAdd = false;
-  final _addController = TextEditingController();
-  final _addFocusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _addController.dispose();
-    _addFocusNode.dispose();
-    super.dispose();
-  }
-
   bool get _isToday {
     final now = DateTime.now();
     return widget.date.year == now.year &&
@@ -48,24 +37,6 @@ class _DayCardState extends ConsumerState<DayCard> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     return widget.date.isBefore(today);
-  }
-
-  Future<void> _submitQuickAdd() async {
-    final title = _addController.text.trim();
-    if (title.isEmpty) {
-      setState(() => _showQuickAdd = false);
-      return;
-    }
-    _addController.clear();
-    setState(() => _showQuickAdd = false);
-    await ref.read(taskActionsProvider.notifier).createTask(title, date: widget.date);
-  }
-
-  void _showAdd() {
-    setState(() => _showQuickAdd = true);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _addFocusNode.requestFocus();
-    });
   }
 
   @override
@@ -186,7 +157,7 @@ class _DayCardState extends ConsumerState<DayCard> {
                       ],
                       if (!_isPast)
                         Pressable(
-                          onTap: _showAdd,
+                          onTap: () => showTaskForm(context, defaultDate: widget.date),
                           borderRadius: BorderRadius.circular(8),
                           hoverColor: AppColors.golden.withValues(alpha: 0.08),
                           child: Container(
@@ -212,12 +183,12 @@ class _DayCardState extends ConsumerState<DayCard> {
                     _GoalSegmentBar(tasks: widget.tasks),
                   ],
                   // Divider between header and task list
-                  if (widget.tasks.isNotEmpty || _showQuickAdd) ...[
+                  if (widget.tasks.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.sm),
                     const Divider(height: 1, color: AppColors.border),
                   ],
                   // Task list or empty state
-                  if (widget.tasks.isEmpty && !_showQuickAdd)
+                  if (widget.tasks.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: AppSpacing.sm),
                       child: Text(
@@ -289,22 +260,8 @@ class _DayCardState extends ConsumerState<DayCard> {
                       },
                     ),
                   ],
-                  // Quick add input
-                  if (_showQuickAdd)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.sm),
-                      child: _QuickAddInput(
-                        controller: _addController,
-                        focusNode: _addFocusNode,
-                        onSubmit: _submitQuickAdd,
-                        onCancel: () {
-                          _addController.clear();
-                          setState(() => _showQuickAdd = false);
-                        },
-                      ),
-                    ),
-                  // Empty state with drag target (when there are no tasks)
-                  if (widget.tasks.isEmpty && !_showQuickAdd)
+                  // Empty state drag target
+                  if (widget.tasks.isEmpty)
                     DragTarget<Task>(
                       onWillAcceptWithDetails: (details) {
                         final now = DateTime.now();
@@ -594,69 +551,3 @@ class _TaskRow extends ConsumerWidget {
   }
 }
 
-// ─── Quick add input ──────────────────────────────────────────────────────────
-
-class _QuickAddInput extends StatelessWidget {
-  const _QuickAddInput({
-    required this.controller,
-    required this.focusNode,
-    required this.onSubmit,
-    required this.onCancel,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final VoidCallback onSubmit;
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.goldenBorder),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              style: const TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 13,
-                color: AppColors.textPrimary,
-              ),
-              decoration: const InputDecoration(
-                hintText: 'New task...',
-                hintStyle: TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 13,
-                  color: AppColors.textMuted,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => onSubmit(),
-            ),
-          ),
-          Pressable(
-            onTap: onCancel,
-            borderRadius: BorderRadius.circular(4),
-            hoverColor: AppColors.textMuted.withValues(alpha: 0.1),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              child: Icon(Icons.close, size: 16, color: AppColors.textMuted),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

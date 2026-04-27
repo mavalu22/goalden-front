@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../shared/widgets/pressable.dart';
 import '../../today/providers/today_provider.dart';
 import '../../today/widgets/task_form_sheet.dart';
 import '../providers/goal_provider.dart';
@@ -29,36 +30,6 @@ class TasksPanel extends ConsumerStatefulWidget {
 
 class _TasksPanelState extends ConsumerState<TasksPanel> {
   _TaskFilter _filter = _TaskFilter.thisWeek;
-
-  final _newTitleCtrl = TextEditingController();
-  final _newFocusNode = FocusNode();
-  DateTime _newDate = DateTime.now();
-  bool _submitting = false;
-
-  @override
-  void dispose() {
-    _newTitleCtrl.dispose();
-    _newFocusNode.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final title = _newTitleCtrl.text.trim();
-    if (title.isEmpty || _submitting) return;
-    setState(() => _submitting = true);
-    final date = DateTime(_newDate.year, _newDate.month, _newDate.day);
-    await ref.read(taskActionsProvider.notifier).createTask(
-          title,
-          date: date,
-          goalId: widget.goalId,
-        );
-    _newTitleCtrl.clear();
-    setState(() {
-      _submitting = false;
-      _newDate = DateTime.now();
-    });
-    _newFocusNode.requestFocus();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,24 +120,42 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
           const SizedBox(height: AppSpacing.xs),
           const Divider(height: 1, color: AppColors.border),
 
-          // ── Inline create ────────────────────────────────────────
-          _InlineCreateRow(
-            gc: gc,
-            ctrl: _newTitleCtrl,
-            focusNode: _newFocusNode,
-            date: _newDate,
-            submitting: _submitting,
-            goalTitle: widget.goalTitle,
-            onDateTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _newDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-              );
-              if (picked != null) setState(() => _newDate = picked);
-            },
-            onSubmit: _submit,
+          // ── Add task button ──────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            child: Pressable(
+              onTap: () => showTaskForm(context, defaultGoalId: widget.goalId),
+              borderRadius: BorderRadius.circular(8),
+              hoverColor: gc.base.withValues(alpha: 0.08),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.add, size: 14, color: gc.base),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Add task',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 12,
+                        color: gc.base,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
 
           const Divider(height: 1, color: AppColors.border),
@@ -427,149 +416,3 @@ class _GoalTaskRow extends StatelessWidget {
   }
 }
 
-// ── Inline create row ─────────────────────────────────────────────────────────
-
-class _InlineCreateRow extends StatelessWidget {
-  const _InlineCreateRow({
-    required this.gc,
-    required this.ctrl,
-    required this.focusNode,
-    required this.date,
-    required this.submitting,
-    required this.goalTitle,
-    required this.onDateTap,
-    required this.onSubmit,
-  });
-
-  final GoalColor gc;
-  final TextEditingController ctrl;
-  final FocusNode focusNode;
-  final DateTime date;
-  final bool submitting;
-  final String goalTitle;
-  final VoidCallback onDateTap;
-  final VoidCallback onSubmit;
-
-  String _labelDate(DateTime d) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(d.year, d.month, d.day);
-    if (target == today) return 'Today';
-    if (target == today.add(const Duration(days: 1))) return 'Tomorrow';
-    return DateFormat('MMM d').format(d);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.sm,
-        AppSpacing.sm,
-        AppSpacing.sm,
-        AppSpacing.xs,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: gc.dim,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: gc.base),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: ctrl,
-                    focusNode: focusNode,
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 13,
-                      color: gc.base,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'New task…',
-                      hintStyle: TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 13,
-                        color: gc.base.withValues(alpha: 0.45),
-                      ),
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      border: InputBorder.none,
-                    ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => onSubmit(),
-                    maxLines: 1,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                GestureDetector(
-                  onTap: onDateTap,
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: gc.base.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: Text(
-                        _labelDate(date),
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFont,
-                          fontSize: 10,
-                          color: gc.base,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                GestureDetector(
-                  onTap: onSubmit,
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: submitting
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              color: gc.base,
-                              strokeWidth: 1.5,
-                            ),
-                          )
-                        : Icon(Icons.keyboard_return_rounded,
-                            size: 16, color: gc.base),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: AppSpacing.xs),
-            child: Text(
-              'auto-linked to ★ $goalTitle',
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 10,
-                color: gc.base.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
