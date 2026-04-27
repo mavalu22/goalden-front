@@ -940,11 +940,12 @@ class _ComingUpSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        ...upcoming.take(8).map((task) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        ...upcoming.map((task) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: TaskTile(
                 task: task,
                 index: tasks.indexOf(task),
+                compact: true,
               ),
             )),
         const SizedBox(height: AppSpacing.xl),

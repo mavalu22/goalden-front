@@ -15,13 +15,21 @@ import '../../shared/widgets/pressable.dart';
 import 'task_form_sheet.dart';
 
 class TaskTile extends ConsumerStatefulWidget {
-  const TaskTile({super.key, required this.task, required this.index});
+  const TaskTile({
+    super.key,
+    required this.task,
+    required this.index,
+    this.compact = false,
+  });
 
   final Task task;
 
   /// Index within the reorderable list — used to attach [ReorderableDragStartListener]
   /// to the drag handle so long-pressing activates drag-to-reorder.
   final int index;
+
+  /// When true, reduces vertical padding for denser layouts.
+  final bool compact;
 
   @override
   ConsumerState<TaskTile> createState() => _TaskTileState();
@@ -290,9 +298,9 @@ class _TaskTileState extends ConsumerState<TaskTile>
                 curve: Curves.easeOut,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.lg,
+                    vertical: widget.compact ? AppSpacing.sm : AppSpacing.lg,
                   ),
                   decoration: BoxDecoration(
                     color: goalColor != null
