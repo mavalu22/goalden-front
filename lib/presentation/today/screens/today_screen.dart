@@ -128,11 +128,8 @@ class _MobileTodayViewState extends ConsumerState<_MobileTodayView> {
   }
 }
 
-/// Viewport width at which the sidebar appears.
-const _sidebarBreakpoint = 1200.0;
-
 /// Width of the contextual sidebar.
-const _sidebarWidth = 260.0;
+const _sidebarWidth = 280.0;
 
 // ─── Desktop ─────────────────────────────────────────────────────────────────
 
@@ -149,20 +146,18 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
     final now = DateTime.now();
     final dateLabel = DateFormat('EEEE · MMMM d').format(now);
     final tasksAsync = ref.watch(todayTasksProvider);
-    final viewportWidth = MediaQuery.of(context).size.width;
-    final showSidebar = viewportWidth >= _sidebarBreakpoint;
 
-    final mainContent = SingleChildScrollView(
+    final leftColumn = SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xxxl,
         AppSpacing.xxl,
-        AppSpacing.xxxl,
+        AppSpacing.xl,
         AppSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Timeline ribbon — always above header
+          // Timeline ribbon — always at top
           tasksAsync.when(
             data: (tasks) => _TimelineRibbon(tasks: tasks),
             loading: () => const SizedBox.shrink(),
@@ -170,35 +165,30 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
           ),
           const SizedBox(height: AppSpacing.xxl),
 
-          // Header row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          // Header
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "TODAY'S FOCUS",
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    dateLabel,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.displayFont,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      height: 1.1,
-                    ),
-                  ),
-                ],
+              const Text(
+                "TODAY'S FOCUS",
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                dateLabel,
+                style: const TextStyle(
+                  fontFamily: AppTypography.displayFont,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  height: 1.1,
+                ),
               ),
             ],
           ),
@@ -223,12 +213,11 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
       ),
     );
 
-    if (!showSidebar) return mainContent;
-
+    // Always show the sidebar — it is always part of the desktop layout.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: mainContent),
+        Expanded(child: leftColumn),
         const _ContextSidebar(),
       ],
     );
