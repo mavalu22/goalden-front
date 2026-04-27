@@ -101,7 +101,6 @@ class _GoalFormContentState extends ConsumerState<_GoalFormContent> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _descCtrl;
   late String _selectedColorId;
-  late bool _starred;
   DateTime? _deadline;
   bool _saving = false;
   String? _titleError;
@@ -113,7 +112,6 @@ class _GoalFormContentState extends ConsumerState<_GoalFormContent> {
     _titleCtrl = TextEditingController(text: g?.title ?? '');
     _descCtrl = TextEditingController(text: g?.description ?? '');
     _selectedColorId = g?.color ?? GoalColors.palette.first.id;
-    _starred = g?.starred ?? false;
     _deadline = g?.deadline;
   }
 
@@ -151,7 +149,7 @@ class _GoalFormContentState extends ConsumerState<_GoalFormContent> {
               ? null
               : _descCtrl.text.trim(),
           color: _selectedColorId,
-          starred: _starred,
+          starred: true,
           deadline: _deadline,
         );
         await notifier.updateGoal(updated);
@@ -163,7 +161,7 @@ class _GoalFormContentState extends ConsumerState<_GoalFormContent> {
               : _descCtrl.text.trim(),
           color: _selectedColorId,
           deadline: _deadline,
-          starred: _starred,
+          starred: true,
         );
       }
       if (mounted) Navigator.of(context).pop();
@@ -363,40 +361,6 @@ class _GoalFormContentState extends ConsumerState<_GoalFormContent> {
                     ),
                 ],
               ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // ── Star toggle ───────────────────────────────────────────
-        GestureDetector(
-          onTap: () => setState(() => _starred = !_starred),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Row(
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 150),
-                  child: Icon(
-                    _starred ? Icons.star_rounded : Icons.star_outline,
-                    key: ValueKey(_starred),
-                    color: _starred
-                        ? AppColors.golden
-                        : AppColors.textSecondary,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  _starred ? 'Starred' : 'Star this goal',
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
             ),
           ),
         ),

@@ -17,7 +17,6 @@ class GoalCard extends ConsumerWidget {
     required this.totalTaskCount,
     this.onTap,
     this.onEdit,
-    this.onToggleStar,
     this.onArchive,
     this.onDelete,
   });
@@ -27,7 +26,6 @@ class GoalCard extends ConsumerWidget {
   final int totalTaskCount;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
-  final VoidCallback? onToggleStar;
   final VoidCallback? onArchive;
   final VoidCallback? onDelete;
 
@@ -106,7 +104,6 @@ class GoalCard extends ConsumerWidget {
                       goal: goal,
                       isArchived: isArchived,
                       onEdit: onEdit,
-                      onToggleStar: onToggleStar,
                       onArchive: onArchive,
                       onDelete: onDelete,
                     ),
@@ -369,7 +366,6 @@ class _KebabMenu extends StatelessWidget {
     required this.goal,
     required this.isArchived,
     this.onEdit,
-    this.onToggleStar,
     this.onArchive,
     this.onDelete,
   });
@@ -377,7 +373,6 @@ class _KebabMenu extends StatelessWidget {
   final Goal goal;
   final bool isArchived;
   final VoidCallback? onEdit;
-  final VoidCallback? onToggleStar;
   final VoidCallback? onArchive;
   final VoidCallback? onDelete;
 
@@ -405,11 +400,6 @@ class _KebabMenu extends StatelessWidget {
             label: 'Edit',
           ),
           _menuItem(
-            value: _GoalAction.toggleStar,
-            icon: goal.starred ? Icons.star_outline : Icons.star_rounded,
-            label: goal.starred ? 'Unstar' : 'Star',
-          ),
-          _menuItem(
             value: _GoalAction.archive,
             icon: isArchived
                 ? Icons.unarchive_outlined
@@ -432,8 +422,6 @@ class _KebabMenu extends StatelessWidget {
     switch (action) {
       case _GoalAction.edit:
         onEdit?.call();
-      case _GoalAction.toggleStar:
-        onToggleStar?.call();
       case _GoalAction.archive:
         onArchive?.call();
       case _GoalAction.delete:
@@ -467,7 +455,7 @@ class _KebabMenu extends StatelessWidget {
   }
 }
 
-enum _GoalAction { edit, toggleStar, archive, delete }
+enum _GoalAction { edit, archive, delete }
 
 // ── Empty slot card ───────────────────────────────────────────────────────────
 

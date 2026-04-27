@@ -257,10 +257,8 @@ class _HeroCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (goal.starred) ...[
-                Icon(Icons.star_rounded, color: gc.base, size: 24),
-                const SizedBox(width: AppSpacing.sm),
-              ],
+              Icon(Icons.star_rounded, color: gc.base, size: 24),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   goal.title,
