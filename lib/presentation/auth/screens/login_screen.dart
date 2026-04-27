@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,90 +83,439 @@ class _DesktopLoginView extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         const _AmbientBackground(),
-        Center(
-          child: SizedBox(
-            width: 380,
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.xxxl),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    blurRadius: 40,
-                    offset: const Offset(0, 20),
-                  ),
-                ],
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.giant,
+            vertical: AppSpacing.huge,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Left — hero / marketing column
+              const Expanded(
+                flex: 11,
+                child: _HeroColumn(),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _GoldenLogo(fontSize: 28, letterSpacing: 4),
-                  const SizedBox(height: AppSpacing.sm),
-                  const Text(
-                    'Plan your days. Achieve your goals.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 13,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  // Google — always first
-                  SocialAuthButton(
-                    label: isLoading ? '' : 'Continue with Google',
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.textPrimary,
-                            ),
-                          )
-                        : const _GoogleIcon(),
-                    onPressed: isLoading ? null : _signInWithGoogle,
-                    style: SocialAuthButtonStyle.dark,
-                  ),
-                  // Apple — only on Apple platforms
-                  if (_isApplePlatform) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    SocialAuthButton(
-                      label: 'Continue with Apple',
-                      icon: const _AppleIcon(),
-                      onPressed: isLoading ? null : _signInWithApple,
-                      style: SocialAuthButtonStyle.dark,
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.lg),
-                  const _OrDivider(),
-                  const SizedBox(height: AppSpacing.lg),
-                  // Email — always secondary
-                  Builder(
-                    builder: (ctx) => SocialAuthButton(
-                      label: 'Sign in with email',
-                      icon: const Icon(Icons.email_outlined, size: 18),
-                      onPressed: isLoading
-                          ? null
-                          : () => Navigator.of(ctx).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const EmailAuthScreen(),
-                                ),
-                              ),
-                      style: SocialAuthButtonStyle.primary,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 50),
+              // Right — auth card
+              Expanded(
+                flex: 10,
+                child: _AuthCard(
+                  isLoading: isLoading,
+                  onGoogle: _signInWithGoogle,
+                  onApple: _signInWithApple,
+                  ref: ref,
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ],
     );
   }
+}
+
+class _HeroColumn extends StatelessWidget {
+  const _HeroColumn();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Logo
+        const _GoldenLogo(fontSize: 18, letterSpacing: 4),
+        const SizedBox(height: AppSpacing.xl),
+        // Headline with squiggle on "on purpose."
+        RichText(
+          text: const TextSpan(
+            style: TextStyle(
+              fontFamily: AppTypography.displayFont,
+              fontSize: 36,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFF2EAD8),
+              height: 1.1,
+            ),
+            children: [
+              TextSpan(text: 'One day at a time, '),
+              WidgetSpan(
+                alignment: PlaceholderAlignment.baseline,
+                baseline: TextBaseline.alphabetic,
+                child: _SquiggleText(
+                  'on purpose.',
+                  style: TextStyle(
+                    fontFamily: AppTypography.displayFont,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFF2EAD8),
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // Body copy
+        const Text(
+          'A calm place to plan your days, connect them to what matters, '
+          'and actually get things done — without the clutter.',
+          style: TextStyle(
+            fontFamily: AppTypography.bodyFont,
+            fontSize: 14,
+            color: Color(0xFFCDC3AE),
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        // Context chips
+        const Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            _ContextChip('For your work'),
+            _ContextChip('For your studies'),
+            _ContextChip('For your life'),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        // Example day card
+        const _ExampleDayCard(),
+      ],
+    );
+  }
+}
+
+class _AuthCard extends StatelessWidget {
+  const _AuthCard({
+    required this.isLoading,
+    required this.onGoogle,
+    required this.onApple,
+    required this.ref,
+  });
+
+  final bool isLoading;
+  final VoidCallback onGoogle;
+  final VoidCallback onApple;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'GET STARTED',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Google button
+          SocialAuthButton(
+            label: isLoading ? '' : 'Continue with Google',
+            icon: isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.textPrimary,
+                    ),
+                  )
+                : const _GoogleIcon(),
+            onPressed: isLoading ? null : onGoogle,
+            style: SocialAuthButtonStyle.dark,
+          ),
+          // Apple — only on Apple platforms
+          if (_isApplePlatform) ...[
+            const SizedBox(height: AppSpacing.sm),
+            SocialAuthButton(
+              label: 'Continue with Apple',
+              icon: const _AppleIcon(),
+              onPressed: isLoading ? null : onApple,
+              style: SocialAuthButtonStyle.dark,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          // Email — accent (golden) style
+          Builder(
+            builder: (ctx) => SocialAuthButton(
+              label: 'Continue with Email',
+              icon: const Icon(
+                Icons.email_outlined,
+                size: 18,
+                color: AppColors.background,
+              ),
+              onPressed: isLoading
+                  ? null
+                  : () => Navigator.of(ctx).push(
+                        MaterialPageRoute(
+                          builder: (_) => const EmailAuthScreen(),
+                        ),
+                      ),
+              style: SocialAuthButtonStyle.primary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Footer link
+          Builder(
+            builder: (ctx) => GestureDetector(
+              onTap: isLoading
+                  ? null
+                  : () => Navigator.of(ctx).push(
+                        MaterialPageRoute(
+                          builder: (_) => const EmailAuthScreen(),
+                        ),
+                      ),
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: const TextSpan(
+                  style: TextStyle(
+                    fontFamily: AppTypography.bodyFont,
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
+                  children: [
+                    TextSpan(text: 'New around here? '),
+                    TextSpan(
+                      text: 'Create an account.',
+                      style: TextStyle(
+                        color: AppColors.golden,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.golden,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContextChip extends StatelessWidget {
+  const _ContextChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontFamily: AppTypography.bodyFont,
+          fontSize: 11,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+class _ExampleDayCard extends StatelessWidget {
+  const _ExampleDayCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 360,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'A DAY IN GOALDEN',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.1,
+              color: AppColors.textMuted,
+            ),
+          ),
+          SizedBox(height: AppSpacing.xs),
+          Text(
+            'Wednesday, April 22',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFF2EAD8),
+            ),
+          ),
+          SizedBox(height: AppSpacing.sm),
+          // Done task — golden tinted
+          _ExampleTask(
+            label: 'Finish the presentation',
+            done: true,
+          ),
+          SizedBox(height: AppSpacing.xs),
+          _ExampleTask(label: '30 min run', opacity: 0.8),
+          SizedBox(height: AppSpacing.xs),
+          _ExampleTask(label: 'Call mom', opacity: 0.7),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExampleTask extends StatelessWidget {
+  const _ExampleTask({
+    required this.label,
+    this.done = false,
+    this.opacity = 1.0,
+  });
+
+  final String label;
+  final bool done;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: done
+            ? BoxDecoration(
+                color: AppColors.golden.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: AppColors.golden.withValues(alpha: 0.5),
+                ),
+              )
+            : null,
+        child: Row(
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: done ? AppColors.golden : Colors.transparent,
+                border: Border.all(
+                  color: done
+                      ? AppColors.golden
+                      : AppColors.border.withValues(alpha: 0.6),
+                  width: 1.5,
+                ),
+              ),
+              child: done
+                  ? const Icon(
+                      Icons.check,
+                      size: 10,
+                      color: AppColors.background,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 12,
+                color: Color(0xFFF2EAD8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Squiggle underline text ─────────────────────────────────────────────────
+
+class _SquiggleText extends StatelessWidget {
+  const _SquiggleText(this.text, {required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: const _SquigglePainter(color: AppColors.golden),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Text(text, style: style),
+      ),
+    );
+  }
+}
+
+class _SquigglePainter extends CustomPainter {
+  const _SquigglePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    const waveWidth = 8.0;
+    const waveHeight = 2.0;
+    final y = size.height - 1.5;
+    final path = Path()..moveTo(0, y);
+
+    var x = 0.0;
+    var up = true;
+    while (x < size.width) {
+      final nextX = math.min(x + waveWidth, size.width);
+      final midX = x + (nextX - x) / 2;
+      path.quadraticBezierTo(
+        midX,
+        up ? y - waveHeight : y + waveHeight,
+        nextX,
+        y,
+      );
+      x = nextX;
+      up = !up;
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SquigglePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 // ─── Mobile ───────────────────────────────────────────────────────────────────
@@ -199,7 +550,7 @@ class _MobileLoginView extends StatelessWidget {
           const _GoldenLogo(fontSize: 40, letterSpacing: 10),
           const SizedBox(height: AppSpacing.sm),
           const Text(
-            'Plan your days. Achieve your goals.',
+            'One day at a time, on purpose.',
             style: TextStyle(
               fontFamily: AppTypography.bodyFont,
               fontSize: 14,
@@ -297,31 +648,6 @@ class _GoldenLogo extends StatelessWidget {
           letterSpacing: letterSpacing,
         ),
       ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(child: Divider(color: AppColors.border, height: 1)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Text(
-            'or',
-            style: TextStyle(
-              fontFamily: AppTypography.bodyFont,
-              fontSize: 12,
-              color: AppColors.textMuted,
-            ),
-          ),
-        ),
-        Expanded(child: Divider(color: AppColors.border, height: 1)),
-      ],
     );
   }
 }
