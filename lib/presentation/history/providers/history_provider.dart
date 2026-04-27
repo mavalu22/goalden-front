@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/models/task.dart';
 import '../../../providers/database_provider.dart';
 
+export '../../../domain/models/task.dart' show Task;
+
 enum HistoryRange { last90Days, thisYear, last12Months }
 
 extension HistoryRangeX on HistoryRange {
@@ -40,6 +42,13 @@ final historyTasksProvider = StreamProvider<List<Task>>((ref) async* {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   yield* repo.watchTasksForDateRange(range.startDate(today), today);
+});
+
+/// Tasks for a specific day in the history drill-down.
+final historyDayTasksProvider =
+    StreamProvider.family<List<Task>, DateTime>((ref, date) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  yield* repo.watchTasksForDate(date);
 });
 
 final historyDayDataProvider = Provider<Map<DateTime, DayData>>((ref) {
