@@ -151,4 +151,35 @@ class GoalDao extends DatabaseAccessor<AppDatabase> with _$GoalDaoMixin {
       ),
     );
   }
+
+  /// Applies a server-side soft-deletion using LWW on deleted_at vs updated_at.
+  Future<void> applyServerDeletion(String id, DateTime serverDeletedAt) async {
+    final existing = await (select(goals)
+          ..where((g) => g.id.equals(id)))
+        .getSingleOrNull();
+
+    if (existing == null) return;
+
+    if (serverDeletedAt.isAfter(existing.updatedAt)) {
+      await (update(goals)..where((g) => g.id.equals(id))).write(
+        GoalsCompanion(
+          deletedAt: Value(serverDeletedAt),
+          updatedAt: Value(serverDeletedAt),
+          syncStatus: const Value('synced'),
+          lastSyncedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
+    } else {
+      await markSynced(id);
+    }
+  }
+
+  /// Permanently removes goals that have been soft-deleted and synced.
+  Future<int> purgeDeletedSyncedGoals() {
+    return (delete(goals)
+          ..where(
+            (g) => g.deletedAt.isNotNull() & g.syncStatus.equals('synced'),
+          ))
+        .go();
+  }
 }

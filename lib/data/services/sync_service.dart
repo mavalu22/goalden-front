@@ -81,67 +81,86 @@ class SyncService {
 
   // ── Push sync ─────────────────────────────────────────────────────────────
 
-  /// Pushes all locally-dirty tasks to the cloud and applies any server
-  /// changes that occurred since the last sync.
-  ///
-  /// - `pending_create` / `pending_update` tasks are sent as upserts.
-  /// - `pending_delete` tasks contribute their IDs to `deleted_ids`.
-  /// - Server response tasks are merged in (last-write-wins).
-  /// - Server deleted IDs are removed from the local store.
-  /// - Successfully pushed tasks are marked `synced`.
+  /// Pushes all locally-dirty tasks and goals to the cloud and applies any
+  /// server changes that occurred since the last sync.
   ///
   /// Never throws — returns [SyncResult] to communicate outcome.
   Future<SyncResult> pushSync() async {
     try {
-      final pending = await _dao.getPendingSyncTasks();
-      if (pending.isEmpty) return SyncResult.success;
+      final pendingTasks = await _dao.getPendingSyncTasks();
+      final pendingGoals = await _goalDao.getPendingSyncGoals();
+      if (pendingTasks.isEmpty && pendingGoals.isEmpty) return SyncResult.success;
 
       final now = DateTime.now().toUtc();
       final lastSyncAt = await _meta.getLastSyncAt();
 
-      // Separate dirty mutations from soft-deletes.
-      final toUpsert = <TaskEntry>[];
-      final deletedIds = <String>[];
-
-      for (final entry in pending) {
+      // ── Tasks ──────────────────────────────────────────────────────────────
+      final toUpsertTasks = <TaskEntry>[];
+      final deletedTaskIds = <String>[];
+      for (final entry in pendingTasks) {
         if (entry.syncStatus == 'pending_delete') {
-          deletedIds.add(entry.id);
+          deletedTaskIds.add(entry.id);
         } else {
-          toUpsert.add(entry);
+          toUpsertTasks.add(entry);
         }
       }
 
-      // Build the wire representation of each task to upsert.
-      final taskPayloads = toUpsert.map(_entryToWireMap).toList();
-
-      // Call the bidirectional sync endpoint.
-      final response = await _client.syncTasks(
-        tasks: taskPayloads,
-        deletedIds: deletedIds,
+      final taskResponse = await _client.syncTasks(
+        tasks: toUpsertTasks.map(_entryToWireMap).toList(),
+        deletedIds: deletedTaskIds,
         lastSyncAt: lastSyncAt,
       );
 
-      // Apply server-side updates (tasks updated on other devices).
       final serverTasks =
-          (response['tasks'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+          (taskResponse['tasks'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       for (final raw in serverTasks) {
         await _dao.upsertFromCloud(_rawToCompanion(raw));
       }
-
-      // Apply LWW deletion from other devices (server returns deleted_at timestamp).
       final serverDeletedTasks =
-          (response['deleted_tasks'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+          (taskResponse['deleted_tasks'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       for (final d in serverDeletedTasks) {
         final id = d['id'] as String;
-        final deletedAt = _parseDateTime(d['deleted_at']) ?? DateTime.now().toUtc();
+        final deletedAt = _parseDateTime(d['deleted_at']) ?? now;
         await _dao.applyServerDeletion(id, deletedAt);
       }
-
-      // Mark all successfully pushed tasks as synced, then purge deleted rows.
-      for (final entry in pending) {
+      for (final entry in pendingTasks) {
         await _dao.markSynced(entry.id);
       }
       await _dao.purgeDeletedSyncedTasks();
+
+      // ── Goals ──────────────────────────────────────────────────────────────
+      final toUpsertGoals = <GoalEntry>[];
+      final deletedGoalIds = <String>[];
+      for (final entry in pendingGoals) {
+        if (entry.syncStatus == 'pending_delete') {
+          deletedGoalIds.add(entry.id);
+        } else {
+          toUpsertGoals.add(entry);
+        }
+      }
+
+      final goalResponse = await _client.syncGoals(
+        goals: toUpsertGoals.map(_goalEntryToWireMap).toList(),
+        deletedIds: deletedGoalIds,
+        lastSyncAt: lastSyncAt,
+      );
+
+      final serverGoals =
+          (goalResponse['goals'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      for (final raw in serverGoals) {
+        await _goalDao.upsertFromCloud(_rawGoalToCompanion(raw));
+      }
+      final serverDeletedGoals =
+          (goalResponse['deleted_goals'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      for (final d in serverDeletedGoals) {
+        final id = d['id'] as String;
+        final deletedAt = _parseDateTime(d['deleted_at']) ?? now;
+        await _goalDao.applyServerDeletion(id, deletedAt);
+      }
+      for (final entry in pendingGoals) {
+        await _goalDao.markSynced(entry.id);
+      }
+      await _goalDao.purgeDeletedSyncedGoals();
 
       await _meta.setLastSyncAt(now);
       return SyncResult.success;
@@ -226,6 +245,25 @@ class SyncService {
       '${dt.year.toString().padLeft(4, '0')}-'
       '${dt.month.toString().padLeft(2, '0')}-'
       '${dt.day.toString().padLeft(2, '0')}';
+
+  /// Converts a [GoalEntry] from the local DB into the wire map format
+  /// expected by the backend's goal sync endpoint.
+  Map<String, dynamic> _goalEntryToWireMap(GoalEntry e) {
+    return {
+      'id': e.id,
+      'user_id': '',
+      'title': e.title,
+      'description': e.description,
+      'color': e.color,
+      'status': e.status,
+      'deadline': e.deadline != null ? _fmtDate(e.deadline!) : null,
+      'starred': e.starred,
+      'created_at': e.createdAt.toUtc().toIso8601String(),
+      'updated_at': e.updatedAt.toUtc().toIso8601String(),
+      'archived_at': e.archivedAt?.toUtc().toIso8601String(),
+      'deleted_at': e.deletedAt?.toUtc().toIso8601String(),
+    };
+  }
 
   /// Converts a raw JSON goal map from the API into a [GoalsCompanion].
   GoalsCompanion _rawGoalToCompanion(Map<String, dynamic> raw) {

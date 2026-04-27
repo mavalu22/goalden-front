@@ -89,6 +89,28 @@ class ApiClient {
     return tasks.cast<Map<String, dynamic>>();
   }
 
+  /// Bidirectional goal sync endpoint.
+  Future<Map<String, dynamic>> syncGoals({
+    required List<Map<String, dynamic>> goals,
+    required List<String> deletedIds,
+    required DateTime lastSyncAt,
+  }) async {
+    final response = await http
+        .post(
+          _uri('goals/sync'),
+          headers: _headers,
+          body: jsonEncode({
+            'goals': goals,
+            'deleted_ids': deletedIds,
+            'last_sync_at': lastSyncAt.toUtc().toIso8601String(),
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    _assertOk(response, 'POST /goals/sync');
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   /// Returns all non-deleted goals for the authenticated user.
   /// Use for the initial pull after login on a new device.
   Future<List<Map<String, dynamic>>> getAllGoals() async {
