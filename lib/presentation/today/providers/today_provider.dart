@@ -26,6 +26,30 @@ final pendingTasksProvider = StreamProvider<List<Task>>((ref) async* {
   yield* repo.watchPendingTasksBefore(now);
 });
 
+/// Completion data for the last 7 days (index 0 = oldest, 6 = today).
+final todayStreakProvider =
+    StreamProvider<List<({int done, int total})>>((ref) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final start = today.subtract(const Duration(days: 6));
+  await for (final tasks in repo.watchTasksForDateRange(start, today)) {
+    final result = <({int done, int total})>[];
+    for (var i = 0; i < 7; i++) {
+      final day = start.add(Duration(days: i));
+      final dayTasks = tasks.where((t) =>
+          t.date.year == day.year &&
+          t.date.month == day.month &&
+          t.date.day == day.day).toList();
+      result.add((
+        done: dayTasks.where((t) => t.done).length,
+        total: dayTasks.length,
+      ));
+    }
+    yield result;
+  }
+});
+
 /// Handles task mutations (create, update, delete).
 final taskActionsProvider =
     AsyncNotifierProvider<TaskActionsNotifier, void>(TaskActionsNotifier.new);
