@@ -9,7 +9,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../goals/providers/goal_provider.dart' show goalColorMapProvider, activeGoalsProvider, Task;
+import '../../goals/providers/goal_provider.dart' show goalColorMapProvider, activeGoalsProvider, Task, Goal;
 import '../providers/today_provider.dart';
 import '../../week/providers/week_provider.dart' show tasksForDateProvider;
 import '../widgets/pending_section.dart';
@@ -1109,6 +1109,7 @@ class _ContextSidebar extends ConsumerWidget {
     final upcoming = [
       for (int i = 1; i <= 3; i++) today.add(Duration(days: i)),
     ];
+    final goals = ref.watch(activeGoalsProvider).valueOrNull ?? [];
 
     return SizedBox(
       width: _sidebarWidth,
@@ -1137,7 +1138,7 @@ class _ContextSidebar extends ConsumerWidget {
                         _ProgressBlock(done: done, total: total),
                         if (tasks.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.md),
-                          ..._buildGoalBars(tasks, goalColorMap),
+                          ..._buildGoalBars(tasks, goalColorMap, goals),
                         ],
                       ],
                     );
@@ -1147,7 +1148,7 @@ class _ContextSidebar extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
 
             // ── Streak ────────────────────────────────────────────────────────
             _SidebarCard(
@@ -1161,7 +1162,7 @@ class _ContextSidebar extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
 
             // ── Overdue ───────────────────────────────────────────────────────
             pendingAsync.when(
@@ -1194,7 +1195,7 @@ class _ContextSidebar extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: AppSpacing.sm),
                   ],
                 );
               },
@@ -1222,6 +1223,7 @@ class _ContextSidebar extends ConsumerWidget {
   List<Widget> _buildGoalBars(
     List<Task> tasks,
     Map<String, dynamic> goalColorMap,
+    List<Goal> goals,
   ) {
     final byGoal = <String?, List<Task>>{};
     for (final t in tasks) {
@@ -1236,6 +1238,9 @@ class _ContextSidebar extends ConsumerWidget {
       final fraction = total == 0 ? 0.0 : done / total;
       final gc = goalId != null ? goalColorMap[goalId] : null;
       final color = gc?.base ?? AppColors.textMuted;
+      final goalName = goalId != null
+          ? goals.where((g) => g.id == goalId).firstOrNull?.title ?? 'Goal'
+          : 'No goal';
 
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -1253,15 +1258,19 @@ class _ContextSidebar extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 5),
-                Text(
-                  goalId != null ? 'Goal' : 'No goal',
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 10,
-                    color: AppColors.textMuted,
+                Expanded(
+                  child: Text(
+                    goalName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 10,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: AppSpacing.xs),
                 Text(
                   '$done/$total',
                   style: const TextStyle(
