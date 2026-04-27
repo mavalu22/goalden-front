@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,8 +12,6 @@ import '../../../core/theme/app_typography.dart';
 import '../../goals/providers/goal_provider.dart' show goalColorMapProvider, Task;
 import '../providers/today_provider.dart';
 import '../../week/providers/week_provider.dart' show tasksForDateProvider;
-import '../utils/daily_quote.dart';
-import '../utils/task_sort.dart';
 import '../widgets/pending_section.dart';
 import '../../shared/widgets/pressable.dart';
 import '../widgets/task_form_sheet.dart';
@@ -46,8 +45,6 @@ class _MobileTodayView extends ConsumerStatefulWidget {
 }
 
 class _MobileTodayViewState extends ConsumerState<_MobileTodayView> {
-  bool _timelineMode = true;
-
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -58,71 +55,54 @@ class _MobileTodayViewState extends ConsumerState<_MobileTodayView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Timeline ribbon — always above header
+        tasksAsync.when(
+          data: (tasks) => Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+            child: _TimelineRibbon(tasks: tasks),
+          ),
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        ),
+        const SizedBox(height: AppSpacing.md),
         // Header
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
-            AppSpacing.lg,
+            0,
             AppSpacing.lg,
             0,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dayOfWeek,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFont,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textMuted,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        dateLabel,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.displayFont,
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                          height: 1.1,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  _ViewToggle(
-                    timeline: _timelineMode,
-                    onToggle: (v) => setState(() => _timelineMode = v),
-                  ),
-                ],
+              Text(
+                dayOfWeek,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                dateLabel,
+                style: const TextStyle(
+                  fontFamily: AppTypography.displayFont,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  height: 1.1,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               _NewTaskButton(onTap: () => showTaskForm(context)),
             ],
           ),
         ),
-        // Timeline ribbon
-        if (_timelineMode)
-          tasksAsync.when(
-            data: (tasks) => tasks.any((t) =>
-                    t.startTimeMinutes != null && t.endTimeMinutes != null)
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
-                    child: _TimelineRibbon(tasks: tasks),
-                  )
-                : const SizedBox.shrink(),
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
         const SizedBox(height: AppSpacing.lg),
         Expanded(
           child: tasksAsync.when(
@@ -131,15 +111,11 @@ class _MobileTodayViewState extends ConsumerState<_MobileTodayView> {
               return ListView(
                 children: [
                   const Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg),
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                     child: PendingSection(),
                   ),
-                  if (_timelineMode) ...[
-                    _RightNowSection(tasks: tasks),
-                    _ComingUpSection(tasks: tasks),
-                  ] else
-                    _TaskList(tasks: tasks),
+                  _RightNowSection(tasks: tasks),
+                  _ComingUpSection(tasks: tasks),
                 ],
               );
             },
@@ -168,8 +144,6 @@ class _DesktopTodayView extends ConsumerStatefulWidget {
 }
 
 class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
-  bool _timelineMode = true;
-
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -188,6 +162,14 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Timeline ribbon — always above header
+          tasksAsync.when(
+            data: (tasks) => _TimelineRibbon(tasks: tasks),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+
           // Header row
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -218,58 +200,25 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
                   ),
                 ],
               ),
-              const Spacer(),
-              _ViewToggle(
-                timeline: _timelineMode,
-                onToggle: (v) => setState(() => _timelineMode = v),
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
-
-          // Timeline ribbon
-          if (_timelineMode)
-            tasksAsync.when(
-              data: (tasks) =>
-                  tasks.any((t) =>
-                          t.startTimeMinutes != null &&
-                          t.endTimeMinutes != null)
-                      ? _TimelineRibbon(tasks: tasks)
-                      : const SizedBox.shrink(),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-
-          if (_timelineMode) const SizedBox(height: AppSpacing.xxl),
-          if (!_timelineMode) ...[
-            const _QuoteCard(),
-            const SizedBox(height: AppSpacing.xxl),
-          ],
 
           _NewTaskButton(onTap: () => showTaskForm(context)),
           const SizedBox(height: AppSpacing.lg),
           const PendingSection(),
 
-          if (_timelineMode)
-            tasksAsync.when(
-              data: (tasks) => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _RightNowSection(tasks: tasks),
-                  _ComingUpSection(tasks: tasks),
-                ],
-              ),
-              loading: () => const _TaskListSkeleton(),
-              error: (_, __) => const _EmptyState(),
-            )
-          else
-            tasksAsync.when(
-              data: (tasks) => tasks.isEmpty
-                  ? const _EmptyState()
-                  : _TaskList(tasks: tasks),
-              loading: () => const _TaskListSkeleton(),
-              error: (_, __) => const _EmptyState(),
+          tasksAsync.when(
+            data: (tasks) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _RightNowSection(tasks: tasks),
+                _ComingUpSection(tasks: tasks),
+              ],
             ),
+            loading: () => const _TaskListSkeleton(),
+            error: (_, __) => const _EmptyState(),
+          ),
         ],
       ),
     );
@@ -286,102 +235,56 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
   }
 }
 
-// ─── View toggle (Timeline / List) ───────────────────────────────────────────
-
-class _ViewToggle extends StatelessWidget {
-  const _ViewToggle({required this.timeline, required this.onToggle});
-
-  final bool timeline;
-  final void Function(bool timeline) onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _ToggleChip(
-          label: 'Timeline',
-          active: timeline,
-          onTap: () => onToggle(true),
-        ),
-        const SizedBox(width: AppSpacing.xs),
-        _ToggleChip(
-          label: 'List',
-          active: !timeline,
-          onTap: () => onToggle(false),
-        ),
-      ],
-    );
-  }
-}
-
-class _ToggleChip extends StatelessWidget {
-  const _ToggleChip({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: active ? AppColors.golden : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: active ? AppColors.golden : AppColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: active ? AppColors.background : AppColors.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Timeline ribbon ──────────────────────────────────────────────────────────
 
-class _TimelineRibbon extends ConsumerWidget {
+class _TimelineRibbon extends ConsumerStatefulWidget {
   const _TimelineRibbon({required this.tasks});
 
   final List<Task> tasks;
 
+  @override
+  ConsumerState<_TimelineRibbon> createState() => _TimelineRibbonState();
+}
+
+class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
   static const _startHour = 7;
   static const _endHour = 21;
   static const _totalMinutes = (_endHour - _startHour) * 60;
   static const _ribbonHeight = 62.0;
   static const _tickHours = [8, 10, 12, 14, 16, 18, 20];
 
+  Timer? _timer;
+  late int _nowMinutes;
+
+  @override
+  void initState() {
+    super.initState();
+    _nowMinutes = _currentMinutes();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() => _nowMinutes = _currentMinutes());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  int _currentMinutes() {
+    final now = DateTime.now();
+    return now.hour * 60 + now.minute;
+  }
+
   double _pct(int minutes) =>
       ((minutes - _startHour * 60) / _totalMinutes).clamp(0.0, 1.0);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final timed = tasks
+  Widget build(BuildContext context) {
+    final timed = widget.tasks
         .where((t) => t.startTimeMinutes != null && t.endTimeMinutes != null)
         .toList();
-    if (timed.isEmpty) return const SizedBox.shrink();
-
-    final now = DateTime.now();
-    final nowMinutes = now.hour * 60 + now.minute;
+    final nowMinutes = _nowMinutes;
     final goalColorMap = ref.watch(goalColorMapProvider);
 
     return Column(
@@ -918,87 +821,6 @@ class _NewTaskButton extends StatelessWidget {
   }
 }
 
-// ─── Task list ────────────────────────────────────────────────────────────────
-
-class _TaskList extends ConsumerWidget {
-  const _TaskList({required this.tasks});
-
-  final List<Task> tasks;
-
-  bool get _isDesktop =>
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.windows ||
-      defaultTargetPlatform == TargetPlatform.linux;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sorted = sortTasks(tasks);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ReorderableListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          proxyDecorator: (child, index, animation) {
-            return AnimatedBuilder(
-              animation: animation,
-              builder: (context, child) {
-                final scale = 1.03 + animation.value * 0.02;
-                return Transform.scale(
-                  scale: scale,
-                  child: Material(
-                    color: Colors.transparent,
-                    elevation: 8 * animation.value,
-                    shadowColor: AppColors.golden.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
-                    child: child,
-                  ),
-                );
-              },
-              child: child,
-            );
-          },
-          itemCount: sorted.length,
-          onReorder: (oldIndex, newIndex) {
-            if (newIndex > oldIndex) newIndex--;
-            final updated = List<Task>.from(sorted);
-            final moved = updated.removeAt(oldIndex);
-            updated.insert(newIndex, moved);
-            ref.read(taskActionsProvider.notifier).reorderTasks(updated);
-          },
-          itemBuilder: (_, i) {
-            final task = sorted[i];
-            return Padding(
-              key: ValueKey(task.id),
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: TaskTile(task: task, index: i),
-            );
-          },
-        ),
-        if (sorted.isNotEmpty && !_isDesktop)
-          const Padding(
-            padding: EdgeInsets.only(
-              top: AppSpacing.lg,
-              bottom: AppSpacing.sm,
-            ),
-            child: Center(
-              child: Text(
-                '← swipe to remove · swipe to postpone →',
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 // ─── Task list skeleton ───────────────────────────────────────────────────────
 
@@ -1130,70 +952,6 @@ class _EmptyState extends StatelessWidget {
               fontFamily: AppTypography.bodyFont,
               fontSize: 13,
               color: AppColors.textMuted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Quote card ───────────────────────────────────────────────────────────────
-
-class _QuoteCard extends StatelessWidget {
-  const _QuoteCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final quote = getTodayQuote();
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: AppColors.border.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '❝',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.golden.withValues(alpha: 0.25),
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '"${quote.text}"',
-                  style: const TextStyle(
-                    fontFamily: AppTypography.displayFont,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: AppColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '— ${quote.author}',
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 11,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
