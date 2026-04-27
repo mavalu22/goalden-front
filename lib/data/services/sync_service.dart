@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 
+import '../local/daos/goal_dao.dart';
 import '../local/daos/task_dao.dart';
 import '../local/database.dart';
 import '../local/sync_meta_storage.dart';
@@ -21,13 +22,16 @@ class SyncService {
   SyncService({
     required ApiClient apiClient,
     required TaskDao dao,
+    required GoalDao goalDao,
     required SyncMetaStorage metaStorage,
   })  : _client = apiClient,
         _dao = dao,
+        _goalDao = goalDao,
         _meta = metaStorage;
 
   final ApiClient _client;
   final TaskDao _dao;
+  final GoalDao _goalDao;
   final SyncMetaStorage _meta;
 
   // ── Initial pull ──────────────────────────────────────────────────────────
@@ -45,13 +49,20 @@ class SyncService {
       // 1. Register / refresh the user record on the server.
       await _client.syncUser(email: userEmail);
 
-      // 2. Pull all non-deleted cloud tasks.
-      final rawTasks = await _client.getAllTasks();
+      // 2. Pull all non-deleted cloud tasks and goals in parallel.
+      final results = await Future.wait([
+        _client.getAllTasks(),
+        _client.getAllGoals(),
+      ]);
+      final rawTasks = results[0];
+      final rawGoals = results[1];
 
-      // 3. Upsert each task — last-write-wins enforced in upsertFromCloud.
+      // 3. Upsert each task and goal — last-write-wins enforced in upsertFromCloud.
       for (final raw in rawTasks) {
-        final companion = _rawToCompanion(raw);
-        await _dao.upsertFromCloud(companion);
+        await _dao.upsertFromCloud(_rawToCompanion(raw));
+      }
+      for (final raw in rawGoals) {
+        await _goalDao.upsertFromCloud(_rawGoalToCompanion(raw));
       }
 
       // 4. Record sync time.
@@ -215,6 +226,34 @@ class SyncService {
       '${dt.year.toString().padLeft(4, '0')}-'
       '${dt.month.toString().padLeft(2, '0')}-'
       '${dt.day.toString().padLeft(2, '0')}';
+
+  /// Converts a raw JSON goal map from the API into a [GoalsCompanion].
+  GoalsCompanion _rawGoalToCompanion(Map<String, dynamic> raw) {
+    final id = raw['id'] as String;
+    final createdAt = _parseDateTime(raw['created_at']) ?? DateTime.now().toUtc();
+    final updatedAt = _parseDateTime(raw['updated_at']) ?? createdAt;
+    final deadlineStr = raw['deadline'] as String?;
+    final deadline = deadlineStr != null && deadlineStr.isNotEmpty
+        ? DateTime.parse(deadlineStr)
+        : null;
+
+    return GoalsCompanion(
+      id: Value(id),
+      userId: Value(raw['user_id'] as String? ?? ''),
+      title: Value(raw['title'] as String? ?? ''),
+      description: Value(raw['description'] as String?),
+      color: Value(raw['color'] as String? ?? ''),
+      status: Value(raw['status'] as String? ?? 'active'),
+      deadline: Value(deadline),
+      starred: Value(raw['starred'] as bool? ?? true),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      archivedAt: Value(_parseDateTime(raw['archived_at'])),
+      deletedAt: Value(_parseDateTime(raw['deleted_at'])),
+      syncStatus: const Value('synced'),
+      lastSyncedAt: Value(DateTime.now().toUtc()),
+    );
+  }
 
   DateTime? _parseDateTime(dynamic value) {
     if (value == null) return null;

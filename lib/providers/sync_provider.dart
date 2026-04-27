@@ -52,11 +52,13 @@ final syncMetaStorageProvider = Provider<SyncMetaStorage>((ref) {
 /// Provides the [SyncService] once the local database is ready.
 final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   final dao = await ref.watch(taskDaoProvider.future);
+  final goalDao = await ref.watch(goalDaoProvider.future);
   final apiClient = ref.watch(apiClientProvider);
   final metaStorage = ref.watch(syncMetaStorageProvider);
   return SyncService(
     apiClient: apiClient,
     dao: dao,
+    goalDao: goalDao,
     metaStorage: metaStorage,
   );
 });
