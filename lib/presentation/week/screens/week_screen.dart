@@ -10,9 +10,10 @@ import '../../goals/providers/goal_provider.dart'
     show activeGoalsProvider, goalColorMapProvider, GoalColor;
 import '../providers/week_provider.dart';
 import '../widgets/day_card.dart';
+import '../widgets/day_column.dart';
 import '../../shared/widgets/pressable.dart';
 
-enum _WeekViewMode { byDay, byGoal }
+enum _WeekViewMode { vertical, horizontal }
 
 class WeekScreen extends ConsumerWidget {
   const WeekScreen({super.key});
@@ -40,7 +41,7 @@ class _MobileWeekView extends ConsumerStatefulWidget {
 }
 
 class _MobileWeekViewState extends ConsumerState<_MobileWeekView> {
-  _WeekViewMode _mode = _WeekViewMode.byDay;
+  _WeekViewMode _mode = _WeekViewMode.vertical;
 
   @override
   Widget build(BuildContext context) {
@@ -83,13 +84,32 @@ class _MobileWeekViewState extends ConsumerState<_MobileWeekView> {
           child: tasksAsync.when(
             data: (tasks) {
               if (tasks.isEmpty) return const _WeekEmptyState();
-              if (_mode == _WeekViewMode.byGoal) {
-                final goals = goalsAsync.valueOrNull ?? [];
-                return _GoalSwimLane(
-                  tasks: tasks,
-                  weekStart: weekStart,
-                  goals: goals,
-                  goalColorMap: goalColorMap,
+              if (_mode == _WeekViewMode.horizontal) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: SizedBox(
+                    width: 7 * 156.0,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: List.generate(7, (i) {
+                        final date = weekStart.add(Duration(days: i));
+                        return SizedBox(
+                          width: 156,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            child: DayColumn(
+                              date: date,
+                              tasks: _tasksForDate(tasks, date),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
                 );
               }
               return ListView.builder(
@@ -136,7 +156,7 @@ class _DesktopWeekView extends ConsumerStatefulWidget {
 }
 
 class _DesktopWeekViewState extends ConsumerState<_DesktopWeekView> {
-  _WeekViewMode _mode = _WeekViewMode.byDay;
+  _WeekViewMode _mode = _WeekViewMode.vertical;
 
   @override
   Widget build(BuildContext context) {
@@ -181,14 +201,29 @@ class _DesktopWeekViewState extends ConsumerState<_DesktopWeekView> {
         Expanded(
           child: tasksAsync.when(
             data: (tasks) {
-              if (_mode == _WeekViewMode.byGoal) {
-                final goals = goalsAsync.valueOrNull ?? [];
-                return _GoalSwimLane(
-                  tasks: tasks,
-                  weekStart: weekStart,
-                  goals: goals,
-                  goalColorMap: goalColorMap,
-                  desktop: true,
+              if (_mode == _WeekViewMode.horizontal) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxxl,
+                    0,
+                    AppSpacing.xxxl,
+                    AppSpacing.lg,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: List.generate(7, (i) {
+                      final date = weekStart.add(Duration(days: i));
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: DayColumn(
+                            date: date,
+                            tasks: _tasksForDate(tasks, date),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
                 );
               }
               return ListView.builder(
@@ -278,8 +313,8 @@ class _WeekHeader extends ConsumerWidget {
             ],
           ),
         ),
-        // By goal / By day toggle
-        _ModeToggle(mode: mode, onToggle: onModeChange),
+        // Vertical / horizontal view mode
+        _ViewModeButtons(mode: mode, onToggle: onModeChange),
         const SizedBox(width: AppSpacing.sm),
         // Prev/next
         _NavButton(
@@ -316,8 +351,8 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-class _ModeToggle extends StatelessWidget {
-  const _ModeToggle({required this.mode, required this.onToggle});
+class _ViewModeButtons extends StatelessWidget {
+  const _ViewModeButtons({required this.mode, required this.onToggle});
 
   final _WeekViewMode mode;
   final void Function(_WeekViewMode) onToggle;
@@ -327,56 +362,58 @@ class _ModeToggle extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _ModeChip(
-          label: 'By goal',
-          active: mode == _WeekViewMode.byGoal,
-          onTap: () => onToggle(_WeekViewMode.byGoal),
+        _ViewModeButton(
+          icon: Icons.view_agenda_outlined,
+          active: mode == _WeekViewMode.vertical,
+          tooltip: 'Vertical view',
+          onTap: () => onToggle(_WeekViewMode.vertical),
         ),
         const SizedBox(width: AppSpacing.xs),
-        _ModeChip(
-          label: 'By day',
-          active: mode == _WeekViewMode.byDay,
-          onTap: () => onToggle(_WeekViewMode.byDay),
+        _ViewModeButton(
+          icon: Icons.view_week_outlined,
+          active: mode == _WeekViewMode.horizontal,
+          tooltip: 'Horizontal view',
+          onTap: () => onToggle(_WeekViewMode.horizontal),
         ),
       ],
     );
   }
 }
 
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({
-    required this.label,
+class _ViewModeButton extends StatelessWidget {
+  const _ViewModeButton({
+    required this.icon,
     required this.active,
+    required this.tooltip,
     required this.onTap,
   });
 
-  final String label;
+  final IconData icon;
   final bool active;
+  final String tooltip;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: active ? AppColors.golden : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: active ? AppColors.golden : AppColors.border,
+    return Tooltip(
+      message: tooltip,
+      waitDuration: const Duration(milliseconds: 500),
+      child: Pressable(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: active ? AppColors.golden : AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: active ? AppColors.golden : AppColors.border,
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+          child: Icon(
+            icon,
+            size: 16,
             color: active ? AppColors.background : AppColors.textSecondary,
           ),
         ),
@@ -531,244 +568,6 @@ class _GoalChip extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── By goal swim-lane view ───────────────────────────────────────────────────
-
-class _GoalSwimLane extends StatelessWidget {
-  const _GoalSwimLane({
-    required this.tasks,
-    required this.weekStart,
-    required this.goals,
-    required this.goalColorMap,
-    this.desktop = false,
-  });
-
-  final List<Task> tasks;
-  final DateTime weekStart;
-  final List<Goal> goals;
-  final Map<String, GoalColor> goalColorMap;
-  final bool desktop;
-
-  static const _dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    // Build goal rows: active goals that have tasks this week + a "no goal" row
-    final goalIds = tasks.map((t) => t.goalId).toSet();
-    final visibleGoals = goals.where((g) => goalIds.contains(g.id)).toList();
-    final hasNoGoalTasks = goalIds.contains(null);
-
-    final hPad =
-        desktop ? AppSpacing.xxxl.toDouble() : AppSpacing.sm.toDouble();
-    const rowLabelWidth = 90.0;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(hPad, AppSpacing.sm, hPad, AppSpacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Day headers row
-          Padding(
-            padding:
-                const EdgeInsets.only(left: rowLabelWidth + AppSpacing.sm),
-            child: Row(
-              children: List.generate(7, (i) {
-                final date = weekStart.add(Duration(days: i));
-                final isToday = date.year == today.year &&
-                    date.month == today.month &&
-                    date.day == today.day;
-                return Expanded(
-                  child: Center(
-                    child: Text(
-                      _dayHeaders[i],
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 10,
-                        fontWeight:
-                            isToday ? FontWeight.w700 : FontWeight.w400,
-                        color: isToday
-                            ? AppColors.golden
-                            : AppColors.textMuted,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          // Goal rows
-          ...visibleGoals.map((goal) {
-            final gc = goalColorMap[goal.id];
-            final color = gc?.base ?? AppColors.textMuted;
-            return _SwimLaneRow(
-              label: goal.title,
-              color: color,
-              weekStart: weekStart,
-              tasks:
-                  tasks.where((t) => t.goalId == goal.id).toList(),
-              today: today,
-            );
-          }),
-          if (hasNoGoalTasks)
-            _SwimLaneRow(
-              label: 'No goal',
-              color: AppColors.textMuted,
-              weekStart: weekStart,
-              tasks: tasks.where((t) => t.goalId == null).toList(),
-              today: today,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SwimLaneRow extends StatelessWidget {
-  const _SwimLaneRow({
-    required this.label,
-    required this.color,
-    required this.weekStart,
-    required this.tasks,
-    required this.today,
-  });
-
-  final String label;
-  final Color color;
-  final DateTime weekStart;
-  final List<Task> tasks;
-  final DateTime today;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Goal label
-            SizedBox(
-              width: 90,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontFamily: AppTypography.bodyFont,
-                          fontSize: 10,
-                          color: color,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.right,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Day cells
-            ...List.generate(7, (i) {
-              final date = weekStart.add(Duration(days: i));
-              final isToday = date.year == today.year &&
-                  date.month == today.month &&
-                  date.day == today.day;
-              final dayTasks = _tasksForDate(tasks, date);
-
-              return Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minHeight: 48),
-                  decoration: BoxDecoration(
-                    color: isToday
-                        ? color.withValues(alpha: 0.06)
-                        : AppColors.surface.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isToday
-                          ? color.withValues(alpha: 0.3)
-                          : AppColors.border.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ...dayTasks.map((t) => _TaskChip(
-                            task: t,
-                            color: color,
-                          )),
-                      if (dayTasks.isEmpty)
-                        const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TaskChip extends StatelessWidget {
-  const _TaskChip({required this.task, required this.color});
-
-  final Task task;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 3),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-      decoration: BoxDecoration(
-        color: task.done
-            ? Colors.transparent
-            : color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: color.withValues(alpha: task.done ? 0.2 : 0.4),
-        ),
-      ),
-      child: Text(
-        task.title,
-        style: TextStyle(
-          fontFamily: AppTypography.bodyFont,
-          fontSize: 9,
-          color: task.done ? AppColors.textMuted : AppColors.textPrimary,
-          decoration: task.done ? TextDecoration.lineThrough : null,
-          decorationColor: AppColors.textMuted,
-        ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
       ),
     );
   }
