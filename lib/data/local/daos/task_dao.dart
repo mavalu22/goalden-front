@@ -92,6 +92,19 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
         .get();
   }
 
+  /// Backfills [goalId] on all non-deleted generated instances of [sourceTaskId]
+  /// that currently have no goal link. Idempotent — no-op if already set.
+  Future<void> healInstanceGoalIds(String sourceTaskId, String goalId) {
+    return (update(tasks)
+          ..where(
+            (t) =>
+                t.sourceTaskId.equals(sourceTaskId) &
+                t.goalId.isNull() &
+                t.deletedAt.isNull(),
+          ))
+        .write(TasksCompanion(goalId: Value(goalId)));
+  }
+
   /// All non-deleted tasks linked to a specific goal.
   Stream<List<TaskEntry>> watchTasksForGoal(String goalId) {
     return (select(tasks)
