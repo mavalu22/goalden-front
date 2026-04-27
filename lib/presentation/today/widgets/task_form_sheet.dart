@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -136,6 +137,8 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   final _titleController = TextEditingController();
   final _noteController = TextEditingController();
   final _titleFocusNode = FocusNode();
+  final _noteFocusNode = FocusNode();
+  final _bulletFormatter = const _BulletFormatter();
 
   late DateTime _selectedDate;
   late TaskPriority _priority;
@@ -282,6 +285,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
     _titleController.dispose();
     _noteController.dispose();
     _titleFocusNode.dispose();
+    _noteFocusNode.dispose();
     super.dispose();
   }
 
@@ -489,14 +493,101 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         const _FieldLabel('Notes'),
         const SizedBox(height: AppSpacing.xs),
         _inputContainer(
-          child: TextField(
-            controller: _noteController,
-            style: _inputTextStyle,
-            decoration: _inputDecoration('Add notes, context, or a plan...'),
-            maxLines: null,
-            minLines: 6,
-            keyboardType: TextInputType.multiline,
-            textInputAction: TextInputAction.newline,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Notes toolbar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sm,
+                  AppSpacing.xs,
+                  AppSpacing.sm,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    Tooltip(
+                      message: 'Add bullet point',
+                      waitDuration: const Duration(milliseconds: 400),
+                      child: Pressable(
+                        onTap: () {
+                          final ctrl = _noteController;
+                          final text = ctrl.text;
+                          final sel = ctrl.selection;
+                          if (!sel.isValid) {
+                            // Append bullet at end
+                            final newText = text.isEmpty
+                                ? '• '
+                                : '$text\n• ';
+                            ctrl.value = TextEditingValue(
+                              text: newText,
+                              selection: TextSelection.collapsed(
+                                  offset: newText.length),
+                            );
+                          } else {
+                            // Find line start
+                            final pos = sel.baseOffset;
+                            final lineStart =
+                                text.lastIndexOf('\n', pos - 1) + 1;
+                            final lineText = text.substring(lineStart,
+                                text.indexOf('\n', lineStart) == -1
+                                    ? text.length
+                                    : text.indexOf('\n', lineStart));
+                            if (lineText.startsWith('• ')) {
+                              // Remove bullet from current line
+                              final newText = text.substring(0, lineStart) +
+                                  lineText.substring(2) +
+                                  text.substring(lineStart + lineText.length);
+                              ctrl.value = TextEditingValue(
+                                text: newText,
+                                selection: TextSelection.collapsed(
+                                    offset: (pos - 2).clamp(lineStart, newText.length)),
+                              );
+                            } else {
+                              // Add bullet to current line
+                              final newText = '${text.substring(0, lineStart)}• ${text.substring(lineStart)}';
+                              ctrl.value = TextEditingValue(
+                                text: newText,
+                                selection: TextSelection.collapsed(
+                                    offset: pos + 2),
+                              );
+                            }
+                          }
+                          _noteFocusNode.requestFocus();
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        hoverColor: AppColors.golden.withValues(alpha: 0.1),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm, vertical: 3),
+                          child: Text(
+                            '•—',
+                            style: TextStyle(
+                              fontFamily: AppTypography.bodyFont,
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: AppColors.borderSubtle),
+              TextField(
+                controller: _noteController,
+                focusNode: _noteFocusNode,
+                style: _inputTextStyle,
+                decoration: _inputDecoration('Add notes, context, or a plan...'),
+                maxLines: null,
+                minLines: 6,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                inputFormatters: [_bulletFormatter],
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -1284,5 +1375,56 @@ class _MetaRow extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+// ─── Bullet formatter ─────────────────────────────────────────────────────────
+
+/// Auto-continues bullet points when the user presses Enter on a bullet line.
+/// Pressing Enter on an empty bullet line (just '• ') removes the bullet.
+class _BulletFormatter extends TextInputFormatter {
+  const _BulletFormatter();
+
+  static const _bullet = '• ';
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Only react when exactly one character was inserted.
+    if (newValue.text.length != oldValue.text.length + 1) return newValue;
+
+    final pos = newValue.selection.baseOffset;
+    if (pos <= 0) return newValue;
+
+    final inserted = newValue.text[pos - 1];
+    if (inserted != '\n') return newValue;
+
+    // Find the line that was just completed (the one before the newline).
+    final prevLineStart = newValue.text.lastIndexOf('\n', pos - 2) + 1;
+    final prevLine = newValue.text.substring(prevLineStart, pos - 1);
+
+    if (prevLine == _bullet.trimRight() || prevLine == _bullet) {
+      // Empty bullet line — remove it and stop bullet mode.
+      final newText =
+          newValue.text.substring(0, prevLineStart) + newValue.text.substring(pos);
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: prevLineStart),
+      );
+    }
+
+    if (prevLine.startsWith(_bullet)) {
+      // Continue bullet on new line.
+      final newText =
+          newValue.text.substring(0, pos) + _bullet + newValue.text.substring(pos);
+      return TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: pos + _bullet.length),
+      );
+    }
+
+    return newValue;
   }
 }
