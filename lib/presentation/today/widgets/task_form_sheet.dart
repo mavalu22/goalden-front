@@ -12,12 +12,13 @@ import '../../goals/providers/goal_provider.dart';
 import '../../shared/widgets/pressable.dart';
 import '../providers/today_provider.dart';
 
-/// Opens the task creation form. Pass [defaultDate] to pre-fill the date.
+/// Opens the task creation form. Pass [defaultDate] and/or [defaultGoalId] to pre-fill.
 Future<void> showTaskForm(
   BuildContext context, {
   DateTime? defaultDate,
+  String? defaultGoalId,
 }) =>
-    _show(context, task: null, defaultDate: defaultDate);
+    _show(context, task: null, defaultDate: defaultDate, defaultGoalId: defaultGoalId);
 
 /// Opens the task editing form pre-filled with [task]'s current values.
 Future<void> showTaskEditForm(
@@ -30,6 +31,7 @@ Future<void> _show(
   BuildContext context, {
   Task? task,
   DateTime? defaultDate,
+  String? defaultGoalId,
 }) async {
   final isDesktop =
       MediaQuery.of(context).size.width >= AppConstants.mobileBreakpoint;
@@ -38,14 +40,14 @@ Future<void> _show(
     await showDialog<void>(
       context: context,
       barrierColor: Colors.black54,
-      builder: (_) => _TaskFormDialog(task: task, defaultDate: defaultDate),
+      builder: (_) => _TaskFormDialog(task: task, defaultDate: defaultDate, defaultGoalId: defaultGoalId),
     );
   } else {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _TaskFormSheet(task: task, defaultDate: defaultDate),
+      builder: (_) => _TaskFormSheet(task: task, defaultDate: defaultDate, defaultGoalId: defaultGoalId),
     );
   }
 }
@@ -53,10 +55,11 @@ Future<void> _show(
 // ─── Mobile bottom sheet wrapper ──────────────────────────────────────────────
 
 class _TaskFormSheet extends StatelessWidget {
-  const _TaskFormSheet({this.task, this.defaultDate});
+  const _TaskFormSheet({this.task, this.defaultDate, this.defaultGoalId});
 
   final Task? task;
   final DateTime? defaultDate;
+  final String? defaultGoalId;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +77,7 @@ class _TaskFormSheet extends StatelessWidget {
           child: _TaskFormContent(
             task: task,
             defaultDate: defaultDate,
+            defaultGoalId: defaultGoalId,
             scrollController: controller,
           ),
         ),
@@ -85,10 +89,11 @@ class _TaskFormSheet extends StatelessWidget {
 // ─── Desktop dialog wrapper ───────────────────────────────────────────────────
 
 class _TaskFormDialog extends StatelessWidget {
-  const _TaskFormDialog({this.task, this.defaultDate});
+  const _TaskFormDialog({this.task, this.defaultDate, this.defaultGoalId});
 
   final Task? task;
   final DateTime? defaultDate;
+  final String? defaultGoalId;
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +110,7 @@ class _TaskFormDialog extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: _TaskFormContent(task: task, defaultDate: defaultDate),
+            child: _TaskFormContent(task: task, defaultDate: defaultDate, defaultGoalId: defaultGoalId),
           ),
         ),
       ),
@@ -116,10 +121,11 @@ class _TaskFormDialog extends StatelessWidget {
 // ─── Form content ─────────────────────────────────────────────────────────────
 
 class _TaskFormContent extends ConsumerStatefulWidget {
-  const _TaskFormContent({this.task, this.defaultDate, this.scrollController});
+  const _TaskFormContent({this.task, this.defaultDate, this.defaultGoalId, this.scrollController});
 
   final Task? task;
   final DateTime? defaultDate;
+  final String? defaultGoalId;
   final ScrollController? scrollController;
 
   @override
@@ -264,6 +270,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       _priority = TaskPriority.normal;
       _recurrence = TaskRecurrence.none;
       _recurrenceDays = {};
+      _selectedGoalId = widget.defaultGoalId;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _titleFocusNode.requestFocus();
       });

@@ -105,7 +105,7 @@ class _MobileTodayViewState extends ConsumerState<_MobileTodayView> {
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              const _QuickTaskInput(),
+              _NewTaskButton(onTap: () => showTaskForm(context)),
             ],
           ),
         ),
@@ -246,7 +246,7 @@ class _DesktopTodayViewState extends ConsumerState<_DesktopTodayView> {
             const SizedBox(height: AppSpacing.xxl),
           ],
 
-          const _QuickTaskInput(hint: 'Pick a task to focus on...'),
+          _NewTaskButton(onTap: () => showTaskForm(context)),
           const SizedBox(height: AppSpacing.lg),
           const PendingSection(),
 
@@ -872,177 +872,48 @@ class _ComingUpSection extends ConsumerWidget {
                 index: tasks.indexOf(task),
               ),
             )),
-        // Quick add
-        Pressable(
-          onTap: () => showTaskForm(context),
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: AppColors.border,
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.add, color: AppColors.golden, size: 16),
-                SizedBox(width: AppSpacing.sm),
-                Text(
-                  'Quick add — type or press /',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
         const SizedBox(height: AppSpacing.xl),
       ],
     );
   }
 }
 
-// ─── Quick task input ─────────────────────────────────────────────────────────
+// ─── New task button ──────────────────────────────────────────────────────────
 
-class _QuickTaskInput extends ConsumerStatefulWidget {
-  const _QuickTaskInput({this.hint = 'New task...'});
+class _NewTaskButton extends StatelessWidget {
+  const _NewTaskButton({required this.onTap});
 
-  final String hint;
-
-  @override
-  ConsumerState<_QuickTaskInput> createState() => _QuickTaskInputState();
-}
-
-class _QuickTaskInputState extends ConsumerState<_QuickTaskInput> {
-  final _controller = TextEditingController();
-  final _focusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final title = _controller.text.trim();
-    if (title.isEmpty) return;
-    _controller.clear();
-    _focusNode.requestFocus();
-    await ref.read(taskActionsProvider.notifier).createTask(title);
-  }
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              style: const TextStyle(
+    return Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      hoverColor: AppColors.golden.withValues(alpha: 0.08),
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add, color: AppColors.golden, size: 18),
+            SizedBox(width: AppSpacing.sm),
+            Text(
+              'New task',
+              style: TextStyle(
                 fontFamily: AppTypography.bodyFont,
                 fontSize: 14,
-                color: AppColors.textPrimary,
+                color: AppColors.textSecondary,
               ),
-              decoration: InputDecoration(
-                hintText: widget.hint,
-                hintStyle: const TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 14,
-                  color: AppColors.textMuted,
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
-                ),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
             ),
-          ),
+          ],
         ),
-        const SizedBox(width: AppSpacing.sm),
-        Tooltip(
-          message: 'New task with details',
-          waitDuration: const Duration(milliseconds: 500),
-          preferBelow: false,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.border),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
-          child: Pressable(
-            onTap: () => showTaskForm(context),
-            borderRadius: BorderRadius.circular(12),
-            hoverColor: AppColors.golden.withValues(alpha: 0.08),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.post_add,
-                  color: AppColors.textSecondary, size: 20),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Tooltip(
-          message: 'Quick add',
-          waitDuration: const Duration(milliseconds: 500),
-          preferBelow: false,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.border),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
-          child: Pressable(
-            onTap: _submit,
-            borderRadius: BorderRadius.circular(12),
-            hoverColor: Colors.white.withValues(alpha: 0.1),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.golden,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.add,
-                  color: AppColors.background, size: 22),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
