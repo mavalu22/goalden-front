@@ -176,7 +176,8 @@ class _TaskTileState extends ConsumerState<TaskTile>
         ? goalColorMap[widget.task.goalId]
         : null;
 
-    final tile = ClipRect(
+    final tile = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
       child: Slidable(
         key: ValueKey(widget.task.id),
         // Swipe right → postpone
