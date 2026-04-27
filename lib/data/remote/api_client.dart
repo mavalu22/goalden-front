@@ -89,6 +89,20 @@ class ApiClient {
     return tasks.cast<Map<String, dynamic>>();
   }
 
+  /// Returns all non-deleted goals for the authenticated user.
+  /// Use for the initial pull after login on a new device.
+  Future<List<Map<String, dynamic>>> getAllGoals() async {
+    final response = await http
+        .get(_uri('goals'), headers: _headers)
+        .timeout(const Duration(seconds: 30));
+
+    _assertOk(response, 'GET /goals');
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final goals = body['goals'] as List<dynamic>? ?? [];
+    return goals.cast<Map<String, dynamic>>();
+  }
+
   // ── Internal ──────────────────────────────────────────────────────────────
 
   void _assertOk(http.Response response, String endpoint) {
