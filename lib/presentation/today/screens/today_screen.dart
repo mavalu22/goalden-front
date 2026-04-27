@@ -323,50 +323,54 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                   width: width,
                   top: 24,
                   bottom: 4,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 1),
-                    decoration: BoxDecoration(
-                      color: isNow
-                          ? goalColor.withValues(alpha: 0.9)
-                          : isPast
-                              ? Colors.transparent
-                              : goalColor.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: isNow
-                            ? goalColor
-                            : isPast
-                                ? goalColor.withValues(alpha: 0.3)
-                                : goalColor.withValues(alpha: 0.5),
-                        style: (!isNow && !isPast)
-                            ? BorderStyle.solid
-                            : BorderStyle.solid,
+                  child: GestureDetector(
+                    onTap: () => showTaskEditForm(context, task: task),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          color: isNow
+                              ? goalColor.withValues(alpha: 0.9)
+                              : isPast
+                                  ? Colors.transparent
+                                  : goalColor.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: isNow
+                                ? goalColor
+                                : isPast
+                                    ? goalColor.withValues(alpha: 0.3)
+                                    : goalColor.withValues(alpha: 0.5),
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        clipBehavior: Clip.hardEdge,
+                        child: isPast
+                            ? CustomPaint(
+                                painter: _HatchPainter(
+                                  color: goalColor.withValues(alpha: 0.2),
+                                ),
+                              )
+                            : Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 2),
+                                child: Text(
+                                  task.title,
+                                  style: TextStyle(
+                                    fontFamily: AppTypography.bodyFont,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: isNow
+                                        ? AppColors.background
+                                        : goalColor,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                       ),
                     ),
-                    clipBehavior: Clip.hardEdge,
-                    child: isPast
-                        ? CustomPaint(
-                            painter: _HatchPainter(
-                              color: goalColor.withValues(alpha: 0.2),
-                            ),
-                          )
-                        : Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 2),
-                            child: Text(
-                              task.title,
-                              style: TextStyle(
-                                fontFamily: AppTypography.bodyFont,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                color: isNow
-                                    ? AppColors.background
-                                    : goalColor,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
                   ),
                 );
               }
