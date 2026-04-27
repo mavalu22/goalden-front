@@ -61,6 +61,7 @@ class RecurrenceService {
             recurrenceDays: const [],
             createdAt: DateTime.now(),
             sourceTaskId: source.id,
+            goalId: source.goalId,
             startTimeMinutes: source.startTimeMinutes,
             endTimeMinutes: source.endTimeMinutes,
           ),
