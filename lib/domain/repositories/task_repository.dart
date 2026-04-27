@@ -40,6 +40,10 @@ abstract class TaskRepository {
   /// Delete all future instances of a recurring source task (today and forward).
   Future<void> deleteFutureInstances(String sourceTaskId, DateTime fromDate);
 
+  /// Backfill [goalId] on all generated instances of [sourceTaskId] that have
+  /// no goal link. Idempotent — no-op if all instances already carry the goal.
+  Future<void> healInstanceGoalIds(String sourceTaskId, String goalId);
+
   /// Unlink all non-deleted tasks that reference [goalId] (set goal_id to null).
   /// Called when a goal is deleted.
   Future<void> unlinkTasksFromGoal(String goalId);

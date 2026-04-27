@@ -91,6 +91,10 @@ class TaskRepositoryImpl implements TaskRepository {
       _dao.unlinkTasksFromGoal(goalId);
 
   @override
+  Future<void> healInstanceGoalIds(String sourceTaskId, String goalId) =>
+      _dao.healInstanceGoalIds(sourceTaskId, goalId);
+
+  @override
   Stream<List<Task>> watchTasksForGoal(String goalId) =>
       _dao.watchTasksForGoal(goalId).map(
             (entries) => entries.map(_fromEntry).toList(),

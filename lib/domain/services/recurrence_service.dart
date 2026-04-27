@@ -47,7 +47,14 @@ class RecurrenceService {
 
       final exists =
           await _repository.recurringInstanceExists(source.id, today);
-      if (exists) continue;
+      if (exists) {
+        // Heal: backfill goalId on the existing instance if the source has one
+        // and the instance was generated before goal linkage was propagated.
+        if (source.goalId != null) {
+          await _repository.healInstanceGoalIds(source.id, source.goalId!);
+        }
+        continue;
+      }
 
       try {
         await _repository.createTask(
