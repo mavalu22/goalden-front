@@ -16,7 +16,9 @@ import '../utils/task_sort.dart';
 import '../widgets/pending_section.dart';
 import '../../shared/widgets/pressable.dart';
 import '../widgets/task_form_sheet.dart';
+import '../widgets/postpone_sheet.dart';
 import '../widgets/task_tile.dart';
+import '../../shared/widgets/delete_confirmation_dialog.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -615,21 +617,54 @@ class _GoalLegend extends StatelessWidget {
 
 // ─── Right now section ────────────────────────────────────────────────────────
 
-class _RightNowSection extends ConsumerWidget {
+class _RightNowSection extends ConsumerStatefulWidget {
   const _RightNowSection({required this.tasks});
 
   final List<Task> tasks;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_RightNowSection> createState() => _RightNowSectionState();
+}
+
+class _RightNowSectionState extends ConsumerState<_RightNowSection> {
+  Future<void> _postpone(Task task) async {
+    final picked = await showPostponeSheet(context);
+    if (picked != null && mounted) {
+      ref.read(taskActionsProvider.notifier).updateTask(
+            task.copyWith(
+              date: DateTime(picked.year, picked.month, picked.day),
+            ),
+          );
+    }
+  }
+
+  Future<void> _cancel(Task task) async {
+    final result = await showDeleteConfirmation(context, task);
+    if (!mounted) return;
+    if (result == DeleteResult.allFuture) {
+      final sourceId = task.sourceTaskId ?? task.id;
+      ref
+          .read(taskActionsProvider.notifier)
+          .deleteTask(sourceId, isRecurringSource: true);
+    } else if (result == DeleteResult.thisInstance) {
+      ref
+          .read(taskActionsProvider.notifier)
+          .deleteTask(task.id, isRecurringSource: false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final now = DateTime.now();
     final nowMinutes = now.hour * 60 + now.minute;
 
-    final current = tasks.where((t) =>
-        t.startTimeMinutes != null &&
-        t.endTimeMinutes != null &&
-        t.startTimeMinutes! <= nowMinutes &&
-        nowMinutes < t.endTimeMinutes!).firstOrNull;
+    final current = widget.tasks
+        .where((t) =>
+            t.startTimeMinutes != null &&
+            t.endTimeMinutes != null &&
+            t.startTimeMinutes! <= nowMinutes &&
+            nowMinutes < t.endTimeMinutes!)
+        .firstOrNull;
 
     if (current == null) return const SizedBox.shrink();
 
@@ -688,9 +723,9 @@ class _RightNowSection extends ConsumerWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    if (current.goalId != null)
+                    if (current.goalId != null && gc != null)
                       Text(
-                        current.goalId == null ? 'No goal' : '★ Goal',
+                        '★ Goal',
                         style: TextStyle(
                           fontFamily: AppTypography.bodyFont,
                           fontSize: 11,
@@ -728,9 +763,9 @@ class _RightNowSection extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              // Snooze button
+              // Postpone button
               Pressable(
-                onTap: () {},
+                onTap: () => _postpone(current),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -743,11 +778,36 @@ class _RightNowSection extends ConsumerWidget {
                     border: Border.all(color: AppColors.border),
                   ),
                   child: const Text(
-                    'Snooze →',
+                    'Postpone →',
                     style: TextStyle(
                       fontFamily: AppTypography.bodyFont,
                       fontSize: 12,
                       color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              // Cancel button
+              Pressable(
+                onTap: () => _cancel(current),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 12,
+                      color: AppColors.error,
                     ),
                   ),
                 ),
