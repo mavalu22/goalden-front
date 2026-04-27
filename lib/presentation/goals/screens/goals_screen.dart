@@ -175,11 +175,6 @@ class _GoalsView extends ConsumerWidget {
                         ),
                         onEdit: () =>
                             showGoalEditForm(context, goal: goal),
-                        onToggleStar: () => ref
-                            .read(goalListProvider.notifier)
-                            .updateGoal(
-                              goal.copyWith(starred: !goal.starred),
-                            ),
                         onArchive: () {
                           final notifier =
                               ref.read(goalListProvider.notifier);
