@@ -584,12 +584,14 @@ class _RightNowSectionState extends ConsumerState<_RightNowSection> {
     final untilLabel =
         '${endHour > 12 ? endHour - 12 : endHour}:${endMin.toString().padLeft(2, '0')}${endHour >= 12 ? 'pm' : 'am'}';
 
+    final isDone = current.done;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'RIGHT NOW · UNTIL $untilLabel',
+          isDone ? 'RIGHT NOW · COMPLETED' : 'RIGHT NOW · UNTIL $untilLabel',
           style: const TextStyle(
             fontFamily: AppTypography.bodyFont,
             fontSize: 10,
@@ -599,127 +601,181 @@ class _RightNowSectionState extends ConsumerState<_RightNowSection> {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: goalColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: goalColor.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.border, width: 1.5),
-                ),
+        Opacity(
+          opacity: isDone ? 0.55 : 1.0,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: isDone
+                  ? AppColors.surfaceElevated
+                  : goalColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDone
+                    ? AppColors.border
+                    : goalColor.withValues(alpha: 0.4),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      current.title,
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+            ),
+            child: Row(
+              children: [
+                // Checkbox — filled golden when done
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDone ? AppColors.golden : Colors.transparent,
+                    border: Border.all(
+                      color: isDone ? AppColors.golden : AppColors.border,
+                      width: 1.5,
                     ),
-                    if (current.goalId != null && gc != null)
+                  ),
+                  child: isDone
+                      ? const Icon(Icons.check, size: 13, color: AppColors.background)
+                      : null,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        '★ Goal',
+                        current.title,
                         style: TextStyle(
                           fontFamily: AppTypography.bodyFont,
-                          fontSize: 11,
-                          color: goalColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: isDone
+                              ? AppColors.textMuted
+                              : AppColors.textPrimary,
+                          decoration:
+                              isDone ? TextDecoration.lineThrough : null,
+                          decorationColor: AppColors.textMuted,
                         ),
                       ),
-                  ],
+                      if (current.goalId != null && gc != null)
+                        Text(
+                          '★ Goal',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 11,
+                            color: goalColor,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              // Done button
-              Pressable(
-                onTap: () => ref
-                    .read(taskActionsProvider.notifier)
-                    .toggleDone(current),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.golden,
+                const SizedBox(width: AppSpacing.md),
+                if (isDone)
+                  // Completed label — tapping undoes completion
+                  Pressable(
+                    onTap: () => ref
+                        .read(taskActionsProvider.notifier)
+                        .toggleDone(current),
                     borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Done ✓',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.background,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.golden.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: AppColors.golden.withValues(alpha: 0.3)),
+                      ),
+                      child: const Text(
+                        'Completed ✓',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.golden,
+                        ),
+                      ),
+                    ),
+                  )
+                else ...[
+                  // Done button
+                  Pressable(
+                    onTap: () => ref
+                        .read(taskActionsProvider.notifier)
+                        .toggleDone(current),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.golden,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Done ✓',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.background,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              // Postpone button
-              Pressable(
-                onTap: () => _postpone(current),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
+                  const SizedBox(width: AppSpacing.sm),
+                  // Postpone button
+                  Pressable(
+                    onTap: () => _postpone(current),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Text(
-                    'Postpone →',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: const Text(
+                        'Postpone →',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              // Cancel button
-              Pressable(
-                onTap: () => _cancel(current),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
+                  const SizedBox(width: AppSpacing.xs),
+                  // Cancel button
+                  Pressable(
+                    onTap: () => _cancel(current),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
-                  ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 12,
-                      color: AppColors.error,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.4)),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 12,
+                          color: AppColors.error,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
