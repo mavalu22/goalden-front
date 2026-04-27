@@ -294,7 +294,8 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
   static const _startHour = 7;
   static const _endHour = 21;
   static const _totalMinutes = (_endHour - _startHour) * 60;
-  static const _ribbonHeight = 62.0;
+  static const _ribbonHeight = 80.0;
+  static const _labelHeight = 16.0;
   static const _tickHours = [8, 10, 12, 14, 16, 18, 20];
 
   Timer? _timer;
@@ -336,12 +337,12 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
       children: [
         // Ribbon container
         Container(
-          height: _ribbonHeight + 20, // +20 for hour labels above
+          height: _ribbonHeight + _labelHeight,
           decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(8),
+            color: AppColors.surface.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.5),
+              color: AppColors.border.withValues(alpha: 0.4),
             ),
           ),
           child: LayoutBuilder(
@@ -353,7 +354,7 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                 final endMin = task.endTimeMinutes!;
                 final left = _pct(startMin) * totalWidth;
                 final right = _pct(endMin) * totalWidth;
-                final width = (right - left).clamp(16.0, double.infinity);
+                final width = (right - left).clamp(20.0, double.infinity);
 
                 final isPast = endMin <= nowMinutes;
                 final isNow = startMin <= nowMinutes && nowMinutes < endMin;
@@ -365,8 +366,8 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                 return Positioned(
                   left: left,
                   width: width,
-                  top: 24,
-                  bottom: 4,
+                  top: _labelHeight + 6,
+                  bottom: 6,
                   child: GestureDetector(
                     onTap: () => showTaskEditForm(context, task: task),
                     child: MouseRegion(
@@ -379,13 +380,13 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                               : isPast
                                   ? Colors.transparent
                                   : goalColor.withValues(alpha: 0.22),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(5),
                           border: Border.all(
                             color: isNow
                                 ? goalColor
                                 : isPast
-                                    ? goalColor.withValues(alpha: 0.3)
-                                    : goalColor.withValues(alpha: 0.5),
+                                    ? goalColor.withValues(alpha: 0.25)
+                                    : goalColor.withValues(alpha: 0.55),
                             style: BorderStyle.solid,
                           ),
                         ),
@@ -393,21 +394,22 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                         child: isPast
                             ? CustomPaint(
                                 painter: _HatchPainter(
-                                  color: goalColor.withValues(alpha: 0.2),
+                                  color: goalColor.withValues(alpha: 0.18),
                                 ),
                               )
                             : Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 2),
+                                    horizontal: 5, vertical: 3),
                                 child: Text(
                                   task.title,
                                   style: TextStyle(
                                     fontFamily: AppTypography.bodyFont,
-                                    fontSize: 9,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w600,
                                     color: isNow
                                         ? AppColors.background
                                         : goalColor,
+                                    height: 1.2,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -419,7 +421,15 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                 );
               }
 
+              // Format hour label: 8, 10, 12, 2, 4, 6, 8 with am/pm suffix
+              String hourLabel(int h) {
+                final h12 = h > 12 ? h - 12 : h;
+                final suffix = h >= 12 ? 'p' : 'a';
+                return '$h12$suffix';
+              }
+
               return Stack(
+                clipBehavior: Clip.none,
                 children: [
                   // Hour ticks + labels
                   ..._tickHours.map((h) {
@@ -427,20 +437,32 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                     return Positioned(
                       left: x,
                       top: 0,
-                      child: Column(
+                      bottom: 0,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${h > 12 ? h - 12 : h}${h >= 12 ? 'pm' : 'am'}',
-                            style: const TextStyle(
-                              fontFamily: AppTypography.bodyFont,
-                              fontSize: 8,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: _ribbonHeight,
-                            color: AppColors.border.withValues(alpha: 0.4),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  hourLabel(h),
+                                  style: const TextStyle(
+                                    fontFamily: AppTypography.bodyFont,
+                                    fontSize: 9,
+                                    color: AppColors.textMuted,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  width: 1,
+                                  color: AppColors.border.withValues(alpha: 0.35),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -455,20 +477,26 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                       nowMinutes <= _endHour * 60)
                     Positioned(
                       left: _pct(nowMinutes) * totalWidth - 1,
-                      top: 18,
+                      top: _labelHeight - 4,
                       bottom: 0,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          Container(width: 2, color: Colors.white),
+                          Container(
+                            width: 2,
+                            decoration: BoxDecoration(
+                              color: AppColors.golden,
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
                           Positioned(
-                            top: -5,
+                            top: -4,
                             left: -4,
                             child: Container(
                               width: 10,
                               height: 10,
                               decoration: const BoxDecoration(
-                                color: Colors.white,
+                                color: AppColors.golden,
                                 shape: BoxShape.circle,
                               ),
                             ),
