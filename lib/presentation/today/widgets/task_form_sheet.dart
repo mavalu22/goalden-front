@@ -485,6 +485,22 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         ),
         const SizedBox(height: AppSpacing.lg),
 
+        // Note field — primary after title
+        const _FieldLabel('Notes'),
+        const SizedBox(height: AppSpacing.xs),
+        _inputContainer(
+          child: TextField(
+            controller: _noteController,
+            style: _inputTextStyle,
+            decoration: _inputDecoration('Add notes, context, or a plan...'),
+            maxLines: null,
+            minLines: 6,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
         // Date field
         const _FieldLabel('Date'),
         const SizedBox(height: AppSpacing.xs),
@@ -496,7 +512,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg,
-                vertical: AppSpacing.md,
+                vertical: AppSpacing.sm,
               ),
               child: Row(
                 children: [
@@ -539,20 +555,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         ),
         const SizedBox(height: AppSpacing.lg),
 
-        // Note field
-        const _FieldLabel('Note'),
-        const SizedBox(height: AppSpacing.xs),
-        _inputContainer(
-          child: TextField(
-            controller: _noteController,
-            style: _inputTextStyle,
-            decoration: _inputDecoration('Add a note... (optional)'),
-            maxLines: 3,
-            minLines: 3,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
         // Time range field
         const _FieldLabel('Time'),
         const SizedBox(height: AppSpacing.xs),
@@ -568,7 +570,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
-                      vertical: AppSpacing.md,
+                      vertical: AppSpacing.sm,
                     ),
                     child: Row(
                       children: [
@@ -835,7 +837,7 @@ class _GoalPickerField extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+            vertical: AppSpacing.sm,
           ),
           child: Row(
             children: [
