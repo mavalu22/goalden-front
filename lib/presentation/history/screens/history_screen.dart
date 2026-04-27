@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -6,8 +8,12 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/goal_colors.dart' show GoalColor;
-import '../../goals/providers/goal_provider.dart' show goalColorMapProvider;
+import '../../../core/theme/goal_colors.dart';
+import '../../goals/providers/goal_provider.dart'
+    show
+        activeGoalsProvider,
+        archivedGoalsProvider,
+        goalColorMapProvider;
 import '../providers/history_provider.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -63,7 +69,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final dayData = ref.watch(historyDayDataProvider);
     final dominantGoals = ref.watch(historyDominantGoalProvider);
     final goalColorMap = ref.watch(goalColorMapProvider);
+    final tasks = ref.watch(historyTasksProvider).valueOrNull ?? [];
     final isLoading = ref.watch(historyTasksProvider).isLoading;
+
+    // Goal info map: active + archived, for goal breakdown panel
+    final activeGoals = ref.watch(activeGoalsProvider).valueOrNull ?? [];
+    final archivedGoals = ref.watch(archivedGoalsProvider).valueOrNull ?? [];
+    final goalInfoMap = <String, ({String title, GoalColor gc})>{
+      for (final g in [...activeGoals, ...archivedGoals])
+        g.id: (title: g.title, gc: GoalColors.fromId(g.color)),
+    };
 
     if (!isLoading && _scrolledForRange != range) {
       _scrolledForRange = range;
@@ -86,6 +101,68 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       }
     }
 
+    // ── KPI computations ─────────────────────────────────────────
+    final doneCount = tasks.where((t) => t.done).length;
+    final totalCount = tasks.length;
+    final completionRate =
+        totalCount > 0 ? (doneCount / totalCount * 100).round() : 0;
+    final rangeLength = today.difference(rangeStart).inDays + 1;
+    final avgPerDay = rangeLength > 0 ? doneCount / rangeLength : 0.0;
+
+    // Current streak: count back from today for consecutive days with ≥1 done
+    var currentStreak = 0;
+    for (var i = 0; i <= rangeLength; i++) {
+      final d = today.subtract(Duration(days: i));
+      final data = dayData[d];
+      if (data != null && data.completed > 0) {
+        currentStreak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    // Best streak in range
+    var bestStreak = 0;
+    var tempStreak = 0;
+    for (var i = 0; i < rangeLength; i++) {
+      final d = rangeStart.add(Duration(days: i));
+      final data = dayData[d];
+      if (data != null && data.completed > 0) {
+        tempStreak++;
+        bestStreak = math.max(bestStreak, tempStreak);
+      } else {
+        tempStreak = 0;
+      }
+    }
+
+    // Day of week counts (0=Mon, 6=Sun), done tasks only
+    final dowCounts = List.filled(7, 0);
+    for (final task in tasks.where((t) => t.done)) {
+      final dow = task.date.weekday - 1;
+      if (dow >= 0 && dow < 7) dowCounts[dow]++;
+    }
+    final maxDow = dowCounts.reduce(math.max);
+    final bestDow = maxDow > 0 ? dowCounts.indexOf(maxDow) : -1;
+
+    // Hour of day counts (0–23), done tasks only
+    final hourCounts = List.filled(24, 0);
+    for (final task in tasks.where((t) => t.done)) {
+      final hour = task.startTimeMinutes != null
+          ? task.startTimeMinutes! ~/ 60
+          : task.createdAt.toLocal().hour;
+      if (hour >= 0 && hour < 24) hourCounts[hour]++;
+    }
+    final maxHour = hourCounts.reduce(math.max);
+    final bestHour = maxHour > 0 ? hourCounts.indexOf(maxHour) : -1;
+
+    // Goal breakdown: count done tasks per goalId, sorted desc
+    final goalCounts = <String?, int>{};
+    for (final task in tasks.where((t) => t.done)) {
+      goalCounts[task.goalId] = (goalCounts[task.goalId] ?? 0) + 1;
+    }
+    final sortedGoalEntries = goalCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop =
@@ -94,53 +171,149 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         final cellSize = isDesktop ? 14.0 : 12.0;
         const gap = 2.0;
 
-        final heatmap = isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.golden),
-                  strokeWidth: 2,
-                ),
-              )
-            : Padding(
-                padding: EdgeInsets.fromLTRB(
-                    hPad, AppSpacing.sm, hPad, AppSpacing.lg),
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  child: _HeatmapGrid(
-                    dayData: dayData,
-                    rangeStart: rangeStart,
-                    today: today,
-                    cellSize: cellSize,
-                    gap: gap,
-                    selectedDate: _selectedDay,
-                    onCellTap: (d) => _onCellTap(d, isDesktop),
-                    goalColorMode: viewMode == HistoryViewMode.byGoal,
-                    dominantGoalColors: dominantColors,
+        final heatmapGrid = isLoading
+            ? const Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.golden),
+                    strokeWidth: 2,
                   ),
                 ),
+              )
+            : SingleChildScrollView(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                child: _HeatmapGrid(
+                  dayData: dayData,
+                  rangeStart: rangeStart,
+                  today: today,
+                  cellSize: cellSize,
+                  gap: gap,
+                  selectedDate: _selectedDay,
+                  onCellTap: (d) => _onCellTap(d, isDesktop),
+                  goalColorMode: viewMode == HistoryViewMode.byGoal,
+                  dominantGoalColors: dominantColors,
+                ),
               );
+
+        // Panels content (cards below header)
+        final Widget panelsContent = SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(hPad, 0, hPad, AppSpacing.huge),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // KPI row
+                _KpiRow(
+                  doneCount: doneCount,
+                  completionRate: completionRate,
+                  totalCount: totalCount,
+                  currentStreak: currentStreak,
+                  bestStreak: bestStreak,
+                  avgPerDay: avgPerDay,
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                // Heatmap + breakdown
+                if (isDesktop)
+                  _TwoColumnRow(
+                    leftFlex: 18,
+                    rightFlex: 10,
+                    left: _HeatmapCard(heatmapGrid: heatmapGrid),
+                    right: _GoalBreakdownPanel(
+                      sortedGoalEntries: sortedGoalEntries,
+                      goalInfoMap: goalInfoMap,
+                      doneCount: doneCount,
+                    ),
+                  )
+                else
+                  Column(
+                    children: [
+                      _HeatmapCard(heatmapGrid: heatmapGrid),
+                      const SizedBox(height: AppSpacing.md),
+                      _GoalBreakdownPanel(
+                        sortedGoalEntries: sortedGoalEntries,
+                        goalInfoMap: goalInfoMap,
+                        doneCount: doneCount,
+                      ),
+                    ],
+                  ),
+
+                const SizedBox(height: AppSpacing.md),
+
+                // Time patterns
+                if (isDesktop)
+                  _TwoColumnRow(
+                    leftFlex: 1,
+                    rightFlex: 1,
+                    left: _DayOfWeekChart(
+                      counts: dowCounts,
+                      maxCount: maxDow,
+                      bestIndex: bestDow,
+                    ),
+                    right: _HourOfDayChart(
+                      counts: hourCounts,
+                      maxCount: maxHour,
+                      bestHour: bestHour,
+                    ),
+                  )
+                else
+                  Column(
+                    children: [
+                      _DayOfWeekChart(
+                        counts: dowCounts,
+                        maxCount: maxDow,
+                        bestIndex: bestDow,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _HourOfDayChart(
+                        counts: hourCounts,
+                        maxCount: maxHour,
+                        bestHour: bestHour,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Header ─────────────────────────────────────────────
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                  hPad, AppSpacing.lg, hPad, AppSpacing.md),
+              padding: EdgeInsets.fromLTRB(hPad, AppSpacing.lg, hPad, AppSpacing.md),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Expanded(
-                    child: Text(
-                      'History',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'HISTORY',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                          letterSpacing: 1.2,
+                        ),
                       ),
-                    ),
+                      Text(
+                        'Your year so far',
+                        style: TextStyle(
+                          fontFamily: AppTypography.displayFont,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
+                  const Spacer(),
                   _ViewModeToggle(
                     mode: viewMode,
                     onToggle: () =>
@@ -155,12 +328,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ],
               ),
             ),
+
+            // ── Content ─────────────────────────────────────────────
             Expanded(
               child: isDesktop && _selectedDay != null
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: heatmap),
+                        Expanded(child: panelsContent),
                         SizedBox(
                           width: 300,
                           child: _DayPanel(
@@ -171,11 +346,629 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ),
                       ],
                     )
-                  : heatmap,
+                  : panelsContent,
             ),
           ],
         );
       },
+    );
+  }
+}
+
+// ── Two-column helper ─────────────────────────────────────────────────────────
+
+class _TwoColumnRow extends StatelessWidget {
+  const _TwoColumnRow({
+    required this.leftFlex,
+    required this.rightFlex,
+    required this.left,
+    required this.right,
+  });
+
+  final int leftFlex;
+  final int rightFlex;
+  final Widget left;
+  final Widget right;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: leftFlex, child: left),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(flex: rightFlex, child: right),
+      ],
+    );
+  }
+}
+
+// ── KPI row ───────────────────────────────────────────────────────────────────
+
+class _KpiRow extends StatelessWidget {
+  const _KpiRow({
+    required this.doneCount,
+    required this.completionRate,
+    required this.totalCount,
+    required this.currentStreak,
+    required this.bestStreak,
+    required this.avgPerDay,
+  });
+
+  final int doneCount;
+  final int completionRate;
+  final int totalCount;
+  final int currentStreak;
+  final int bestStreak;
+  final double avgPerDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final focusMin = (avgPerDay * 20).round();
+    return Row(
+      children: [
+        Expanded(
+          child: _KpiCard(
+            label: 'TASKS DONE',
+            value: '$doneCount',
+            sub: '$totalCount total',
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _KpiCard(
+            label: 'COMPLETION RATE',
+            value: '$completionRate%',
+            sub: '$doneCount of $totalCount done',
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _KpiCard(
+            label: 'CURRENT STREAK',
+            value: '${currentStreak}d',
+            sub: 'best: ${bestStreak}d',
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _KpiCard(
+            label: 'AVG PER DAY',
+            value: avgPerDay.toStringAsFixed(1),
+            sub: '~${focusMin}m focused',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _KpiCard extends StatelessWidget {
+  const _KpiCard({
+    required this.label,
+    required this.value,
+    required this.sub,
+  });
+
+  final String label;
+  final String value;
+  final String sub;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            sub,
+            style: const TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 10,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Heatmap card ──────────────────────────────────────────────────────────────
+
+class _HeatmapCard extends StatelessWidget {
+  const _HeatmapCard({required this.heatmapGrid});
+
+  final Widget heatmapGrid;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Activity heatmap',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          heatmapGrid,
+          const SizedBox(height: AppSpacing.sm),
+          // Legend
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Text(
+                'less',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 9,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(width: 4),
+              for (final c in const [
+                Color(0x0FD4AF37),
+                Color(0x33D4AF37),
+                Color(0x66D4AF37),
+                Color(0x99D4AF37),
+                AppColors.golden,
+              ])
+                Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(left: 3),
+                  decoration: BoxDecoration(
+                    color: c,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              const Text(
+                'more',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 9,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Goal breakdown panel ──────────────────────────────────────────────────────
+
+class _GoalBreakdownPanel extends StatelessWidget {
+  const _GoalBreakdownPanel({
+    required this.sortedGoalEntries,
+    required this.goalInfoMap,
+    required this.doneCount,
+  });
+
+  final List<MapEntry<String?, int>> sortedGoalEntries;
+  final Map<String, ({String title, GoalColor gc})> goalInfoMap;
+  final int doneCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Tasks by goal',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (sortedGoalEntries.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              child: Text(
+                'No tasks yet.',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            )
+          else
+            for (final entry in sortedGoalEntries) ...[
+              _GoalBar(
+                entry: entry,
+                goalInfoMap: goalInfoMap,
+                doneCount: doneCount,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalBar extends StatelessWidget {
+  const _GoalBar({
+    required this.entry,
+    required this.goalInfoMap,
+    required this.doneCount,
+  });
+
+  final MapEntry<String?, int> entry;
+  final Map<String, ({String title, GoalColor gc})> goalInfoMap;
+  final int doneCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final isNoGoal = entry.key == null;
+    final info = entry.key != null ? goalInfoMap[entry.key] : null;
+    final title = isNoGoal ? 'No goal' : (info?.title ?? 'Unknown goal');
+    final color = info?.gc.base ?? AppColors.textMuted;
+    final pct = doneCount > 0 ? (entry.value / doneCount * 100).round() : 0;
+    final fraction = doneCount > 0 ? entry.value / doneCount : 0.0;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text(
+              isNoGoal ? '' : '★ ',
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 11,
+                  color: AppColors.textPrimary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              '${entry.value} · $pct%',
+              style: const TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 10,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: fraction,
+            backgroundColor: AppColors.border.withValues(alpha: 0.4),
+            valueColor: AlwaysStoppedAnimation(color),
+            minHeight: 5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Day of week chart ─────────────────────────────────────────────────────────
+
+class _DayOfWeekChart extends StatelessWidget {
+  const _DayOfWeekChart({
+    required this.counts,
+    required this.maxCount,
+    required this.bestIndex,
+  });
+
+  final List<int> counts;
+  final int maxCount;
+  final int bestIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const dayNames = [
+      'Mondays',
+      'Tuesdays',
+      'Wednesdays',
+      'Thursdays',
+      'Fridays',
+      'Saturdays',
+      'Sundays',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Best day of week',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            height: 80,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < 7; i++) ...[
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: maxCount > 0
+                                  ? (counts[i] / maxCount).clamp(0.05, 1.0)
+                                  : 0.05,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: i == bestIndex
+                                      ? AppColors.golden
+                                      : AppColors.border.withValues(alpha: 0.5),
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(2),
+                                    topRight: Radius.circular(2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          labels[i],
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 9,
+                            color: i == bestIndex
+                                ? AppColors.golden
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (i < 6) const SizedBox(width: 4),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (bestIndex >= 0)
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+                children: [
+                  const TextSpan(text: 'You finish most tasks on '),
+                  TextSpan(
+                    text: dayNames[bestIndex],
+                    style: const TextStyle(color: AppColors.golden),
+                  ),
+                  const TextSpan(text: '.'),
+                ],
+              ),
+            )
+          else
+            const Text(
+              'Not enough data yet.',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 11,
+                color: AppColors.textMuted,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Hour of day chart ─────────────────────────────────────────────────────────
+
+class _HourOfDayChart extends StatelessWidget {
+  const _HourOfDayChart({
+    required this.counts,
+    required this.maxCount,
+    required this.bestHour,
+  });
+
+  final List<int> counts;
+  final int maxCount;
+  final int bestHour;
+
+  String _hourRange(int h) {
+    final next = (h + 2).clamp(0, 23);
+    return '${h}h–${next}h';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Best time of day',
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            height: 80,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < 24; i++)
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        heightFactor: maxCount > 0
+                            ? (counts[i] / maxCount).clamp(0.04, 1.0)
+                            : 0.04,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                          decoration: BoxDecoration(
+                            color: i == bestHour
+                                ? AppColors.golden
+                                : AppColors.border.withValues(alpha: 0.5),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(1),
+                              topRight: Radius.circular(1),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '0h',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 9,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              Text(
+                '12h',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 9,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              Text(
+                '24h',
+                style: TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 9,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (bestHour >= 0)
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontFamily: AppTypography.bodyFont,
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+                children: [
+                  const TextSpan(text: 'Peak focus around '),
+                  TextSpan(
+                    text: _hourRange(bestHour),
+                    style: const TextStyle(color: AppColors.golden),
+                  ),
+                  const TextSpan(text: '.'),
+                ],
+              ),
+            )
+          else
+            const Text(
+              'Not enough data yet.',
+              style: TextStyle(
+                fontFamily: AppTypography.bodyFont,
+                fontSize: 11,
+                color: AppColors.textMuted,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -211,8 +1004,7 @@ class _ViewModeToggle extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppTypography.bodyFont,
                 fontSize: 11,
-                fontWeight:
-                    !isGoal ? FontWeight.w700 : FontWeight.w400,
+                fontWeight: !isGoal ? FontWeight.w700 : FontWeight.w400,
                 color: !isGoal ? AppColors.golden : AppColors.textMuted,
               ),
             ),
@@ -232,8 +1024,7 @@ class _ViewModeToggle extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppTypography.bodyFont,
                 fontSize: 11,
-                fontWeight:
-                    isGoal ? FontWeight.w700 : FontWeight.w400,
+                fontWeight: isGoal ? FontWeight.w700 : FontWeight.w400,
                 color: isGoal ? AppColors.golden : AppColors.textMuted,
               ),
             ),
@@ -282,18 +1073,29 @@ class _RangeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: AppTypography.bodyFont,
-            fontSize: 12,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-            color: isActive ? AppColors.golden : AppColors.textMuted,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.goldenDim : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isActive ? AppColors.goldenBorder : Colors.transparent,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppTypography.bodyFont,
+              fontSize: 11,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              color: isActive ? AppColors.golden : AppColors.textMuted,
+            ),
           ),
         ),
       ),

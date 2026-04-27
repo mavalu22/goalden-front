@@ -6,28 +6,32 @@ import '../../../providers/database_provider.dart';
 
 export '../../../domain/models/task.dart' show Task;
 
-enum HistoryRange { last90Days, thisYear, last12Months }
+enum HistoryRange { last7Days, last30Days, thisYear, allTime }
 
 extension HistoryRangeX on HistoryRange {
   String get label {
     switch (this) {
-      case HistoryRange.last90Days:
-        return '90d';
+      case HistoryRange.last7Days:
+        return '7 days';
+      case HistoryRange.last30Days:
+        return '30 days';
       case HistoryRange.thisYear:
-        return 'Year';
-      case HistoryRange.last12Months:
-        return '12m';
+        return 'This year';
+      case HistoryRange.allTime:
+        return 'All time';
     }
   }
 
   DateTime startDate(DateTime today) {
     switch (this) {
-      case HistoryRange.last90Days:
-        return today.subtract(const Duration(days: 89));
+      case HistoryRange.last7Days:
+        return today.subtract(const Duration(days: 6));
+      case HistoryRange.last30Days:
+        return today.subtract(const Duration(days: 29));
       case HistoryRange.thisYear:
         return DateTime(today.year, 1, 1);
-      case HistoryRange.last12Months:
-        return DateTime(today.year - 1, today.month, today.day);
+      case HistoryRange.allTime:
+        return DateTime(2020, 1, 1);
     }
   }
 }
@@ -35,7 +39,7 @@ extension HistoryRangeX on HistoryRange {
 typedef DayData = ({int completed, int planned});
 
 final historyRangeProvider =
-    StateProvider<HistoryRange>((ref) => HistoryRange.last12Months);
+    StateProvider<HistoryRange>((ref) => HistoryRange.thisYear);
 
 final historyTasksProvider = StreamProvider<List<Task>>((ref) async* {
   final range = ref.watch(historyRangeProvider);
