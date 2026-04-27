@@ -94,7 +94,7 @@ class _MilestonesPanelState extends ConsumerState<MilestonesPanel> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border(
-          top: BorderSide(color: gc.base, width: 2),
+          top: BorderSide(color: gc.base, width: 3),
           left: const BorderSide(color: AppColors.border),
           right: const BorderSide(color: AppColors.border),
           bottom: const BorderSide(color: AppColors.border),

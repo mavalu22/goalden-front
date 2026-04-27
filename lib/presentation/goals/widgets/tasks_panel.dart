@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/theme/goal_colors.dart';
 import '../../today/providers/today_provider.dart';
 import '../../today/widgets/task_form_sheet.dart';
 import '../providers/goal_provider.dart';
@@ -71,7 +70,7 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border(
-          top: BorderSide(color: gc.base, width: 2),
+          top: BorderSide(color: gc.base, width: 3),
           left: const BorderSide(color: AppColors.border),
           right: const BorderSide(color: AppColors.border),
           bottom: const BorderSide(color: AppColors.border),
