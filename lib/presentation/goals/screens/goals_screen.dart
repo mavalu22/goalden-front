@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../providers/goal_provider.dart';
-import '../widgets/goal_card.dart';
+import '../widgets/goal_card.dart' show GoalCard, GoalEmptySlot;
 import '../widgets/goal_form_sheet.dart';
 import 'goal_detail_screen.dart';
 
@@ -38,7 +38,7 @@ class _GoalsView extends ConsumerWidget {
         : ref.watch(activeGoalsProvider);
     final countsAsync = ref.watch(goalTaskCountsProvider);
 
-    final crossAxisCount = isDesktop ? 3 : 1;
+    final crossAxisCount = isDesktop ? 2 : 1;
     final horizontalPadding =
         isDesktop ? AppSpacing.xxxl : AppSpacing.lg;
 
@@ -56,15 +56,40 @@ class _GoalsView extends ConsumerWidget {
                 0,
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
-                    'Goals',
-                    style: TextStyle(
-                      fontFamily: AppTypography.bodyFont,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'YOUR GOALS',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      goalsAsync.when(
+                        data: (goals) {
+                          final active = goals
+                              .where((g) => g.status == GoalStatus.active)
+                              .length;
+                          return Text(
+                            '$active active',
+                            style: const TextStyle(
+                              fontFamily: AppTypography.displayFont,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      ),
+                    ],
                   ),
                   const Spacer(),
                   _NewGoalButton(),
@@ -121,6 +146,8 @@ class _GoalsView extends ConsumerWidget {
 
               final counts = countsAsync.valueOrNull ?? {};
 
+              // +1 for the empty slot
+              final itemCount = goals.length + 1;
               return SliverPadding(
                 padding: EdgeInsets.symmetric(
                   horizontal: horizontalPadding,
@@ -128,6 +155,12 @@ class _GoalsView extends ConsumerWidget {
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
                     (context, i) {
+                      // Last item is the empty slot
+                      if (i == goals.length) {
+                        return GoalEmptySlot(
+                          onTap: () => showGoalForm(context),
+                        );
+                      }
                       final goal = goals[i];
                       final taskCounts =
                           counts[goal.id] ?? (open: 0, total: 0);
@@ -160,14 +193,14 @@ class _GoalsView extends ConsumerWidget {
                             _confirmDeleteGoal(context, ref, goal),
                       );
                     },
-                    childCount: goals.length,
+                    childCount: itemCount,
                   ),
                   gridDelegate:
                       SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
                     mainAxisSpacing: AppSpacing.md,
                     crossAxisSpacing: AppSpacing.md,
-                    childAspectRatio: isDesktop ? 1.8 : 2.2,
+                    childAspectRatio: isDesktop ? 1.6 : 1.4,
                   ),
                 ),
               );

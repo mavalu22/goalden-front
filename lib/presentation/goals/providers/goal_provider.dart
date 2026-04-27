@@ -72,6 +72,48 @@ final goalDetailStatsProvider = StreamProvider.family<
   });
 });
 
+/// Next open (not done) task for a goal, ordered by date then createdAt.
+final goalNextOpenTaskProvider =
+    StreamProvider.family<Task?, String>((ref, goalId) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  await for (final tasks in repo.watchTasksForGoal(goalId)) {
+    final open = tasks.where((t) => !t.done).toList()
+      ..sort((a, b) {
+        final dc = a.date.compareTo(b.date);
+        return dc != 0 ? dc : a.createdAt.compareTo(b.createdAt);
+      });
+    yield open.isEmpty ? null : open.first;
+  }
+});
+
+/// 7-day activity for all goals.
+/// Returns Map<goalId, List<bool>> where each bool = had completed task that day.
+/// Index 0 = 6 days ago, index 6 = today.
+final goalSevenDayActivityProvider =
+    StreamProvider<Map<String, List<bool>>>((ref) async* {
+  final repo = await ref.watch(taskRepositoryProvider.future);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final start = today.subtract(const Duration(days: 6));
+
+  await for (final tasks in repo.watchTasksForDateRange(start, today)) {
+    final result = <String, List<bool>>{};
+    for (var i = 0; i < 7; i++) {
+      final day = start.add(Duration(days: i));
+      final dayTasks = tasks.where((t) =>
+          t.goalId != null &&
+          t.date.year == day.year &&
+          t.date.month == day.month &&
+          t.date.day == day.day);
+      for (final t in dayTasks) {
+        result.putIfAbsent(t.goalId!, () => List.filled(7, false));
+        if (t.done) result[t.goalId!]![i] = true;
+      }
+    }
+    yield result;
+  }
+});
+
 /// Whether the Goals screen is showing archived goals.
 final showArchivedGoalsProvider = StateProvider<bool>((ref) => false);
 
