@@ -354,7 +354,8 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                 final endMin = task.endTimeMinutes!;
                 final left = _pct(startMin) * totalWidth;
                 final right = _pct(endMin) * totalWidth;
-                final width = (right - left).clamp(20.0, double.infinity);
+                final available = (totalWidth - left).clamp(1.0, double.infinity);
+                final width = (right - left).clamp(20.0, available);
 
                 final isPast = endMin <= nowMinutes;
                 final isNow = startMin <= nowMinutes && nowMinutes < endMin;
@@ -429,7 +430,7 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
               }
 
               return Stack(
-                clipBehavior: Clip.none,
+                clipBehavior: Clip.hardEdge,
                 children: [
                   // Hour ticks + labels
                   ..._tickHours.map((h) {
