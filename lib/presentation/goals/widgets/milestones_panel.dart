@@ -322,6 +322,8 @@ class _MilestoneRow extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
+                        const SizedBox(width: AppSpacing.xs),
+                        _DeleteButton(onDelete: onDelete),
                       ],
                     ),
                   ),
@@ -392,6 +394,40 @@ class _MilestoneRow extends StatelessWidget {
       if (value == 'edit') onEdit();
       if (value == 'delete') onDelete();
     });
+  }
+}
+
+// ── Milestone delete button ───────────────────────────────────────────────────
+
+class _DeleteButton extends StatefulWidget {
+  const _DeleteButton({required this.onDelete});
+  final VoidCallback onDelete;
+
+  @override
+  State<_DeleteButton> createState() => _DeleteButtonState();
+}
+
+class _DeleteButtonState extends State<_DeleteButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onDelete,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            Icons.close_rounded,
+            size: 14,
+            color: _hovered ? AppColors.error : AppColors.textMuted,
+          ),
+        ),
+      ),
+    );
   }
 }
 
