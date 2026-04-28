@@ -117,6 +117,24 @@ class MilestoneDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Marks a server-deleted milestone as deleted locally if it exists.
+  Future<void> applyServerDeletion(String id) async {
+    final existing = await (select(milestones)
+          ..where((m) => m.id.equals(id)))
+        .getSingleOrNull();
+    if (existing == null) return;
+
+    final now = DateTime.now().toUtc();
+    await (update(milestones)..where((m) => m.id.equals(id))).write(
+      MilestonesCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+        syncStatus: const Value('synced'),
+        lastSyncedAt: Value(now),
+      ),
+    );
+  }
+
   Future<int> purgeDeletedSyncedMilestones() {
     return (delete(milestones)
           ..where(

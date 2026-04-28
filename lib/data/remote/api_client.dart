@@ -111,6 +111,41 @@ class ApiClient {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
+  /// Bidirectional milestone sync endpoint.
+  Future<Map<String, dynamic>> syncMilestones({
+    required List<Map<String, dynamic>> milestones,
+    required List<String> deletedIds,
+    required DateTime lastSyncAt,
+  }) async {
+    final response = await http
+        .post(
+          _uri('milestones/sync'),
+          headers: _headers,
+          body: jsonEncode({
+            'milestones': milestones,
+            'deleted_ids': deletedIds,
+            'last_sync_at': lastSyncAt.toUtc().toIso8601String(),
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    _assertOk(response, 'POST /milestones/sync');
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  /// Returns all non-deleted milestones for the authenticated user.
+  Future<List<Map<String, dynamic>>> getAllMilestones() async {
+    final response = await http
+        .get(_uri('milestones'), headers: _headers)
+        .timeout(const Duration(seconds: 30));
+
+    _assertOk(response, 'GET /milestones');
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final milestones = body['milestones'] as List<dynamic>? ?? [];
+    return milestones.cast<Map<String, dynamic>>();
+  }
+
   /// Returns all non-deleted goals for the authenticated user.
   /// Use for the initial pull after login on a new device.
   Future<List<Map<String, dynamic>>> getAllGoals() async {
