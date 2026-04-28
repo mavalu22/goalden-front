@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../domain/models/milestone.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/database_provider.dart';
+import '../../../providers/sync_provider.dart';
 
 export '../../../domain/models/milestone.dart' show Milestone;
 
@@ -53,6 +54,7 @@ class MilestoneListNotifier
       updatedAt: now,
     );
     await repo.createMilestone(milestone);
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 
   Future<void> updateMilestone(Milestone milestone) async {
@@ -60,15 +62,18 @@ class MilestoneListNotifier
     if (trimmed.isEmpty || trimmed.length > 500) return;
     final repo = await ref.read(milestoneRepositoryProvider.future);
     await repo.updateMilestone(milestone.copyWith(title: trimmed));
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 
   Future<void> toggleDone(String milestoneId, {required bool done}) async {
     final repo = await ref.read(milestoneRepositoryProvider.future);
     await repo.completeMilestone(milestoneId, done: done);
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 
   Future<void> deleteMilestone(String milestoneId) async {
     final repo = await ref.read(milestoneRepositoryProvider.future);
     await repo.deleteMilestone(milestoneId);
+    ref.read(syncActionsProvider.notifier).pushSync();
   }
 }

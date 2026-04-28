@@ -53,12 +53,14 @@ final syncMetaStorageProvider = Provider<SyncMetaStorage>((ref) {
 final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   final dao = await ref.watch(taskDaoProvider.future);
   final goalDao = await ref.watch(goalDaoProvider.future);
+  final milestoneDao = await ref.watch(milestoneDaoProvider.future);
   final apiClient = ref.watch(apiClientProvider);
   final metaStorage = ref.watch(syncMetaStorageProvider);
   return SyncService(
     apiClient: apiClient,
     dao: dao,
     goalDao: goalDao,
+    milestoneDao: milestoneDao,
     metaStorage: metaStorage,
   );
 });

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 
 import '../local/daos/goal_dao.dart';
+import '../local/daos/milestone_dao.dart';
 import '../local/daos/task_dao.dart';
 import '../local/database.dart';
 import '../local/sync_meta_storage.dart';
@@ -23,15 +24,18 @@ class SyncService {
     required ApiClient apiClient,
     required TaskDao dao,
     required GoalDao goalDao,
+    required MilestoneDao milestoneDao,
     required SyncMetaStorage metaStorage,
   })  : _client = apiClient,
         _dao = dao,
         _goalDao = goalDao,
+        _milestoneDao = milestoneDao,
         _meta = metaStorage;
 
   final ApiClient _client;
   final TaskDao _dao;
   final GoalDao _goalDao;
+  final MilestoneDao _milestoneDao;
   final SyncMetaStorage _meta;
 
   // ── Initial pull ──────────────────────────────────────────────────────────
@@ -49,20 +53,25 @@ class SyncService {
       // 1. Register / refresh the user record on the server.
       await _client.syncUser(email: userEmail);
 
-      // 2. Pull all non-deleted cloud tasks and goals in parallel.
+      // 2. Pull all non-deleted cloud tasks, goals, and milestones in parallel.
       final results = await Future.wait([
         _client.getAllTasks(),
         _client.getAllGoals(),
+        _client.getAllMilestones(),
       ]);
       final rawTasks = results[0];
       final rawGoals = results[1];
+      final rawMilestones = results[2];
 
-      // 3. Upsert each task and goal — last-write-wins enforced in upsertFromCloud.
+      // 3. Upsert tasks, goals, and milestones — last-write-wins.
       for (final raw in rawTasks) {
         await _dao.upsertFromCloud(_rawToCompanion(raw));
       }
       for (final raw in rawGoals) {
         await _goalDao.upsertFromCloud(_rawGoalToCompanion(raw));
+      }
+      for (final raw in rawMilestones) {
+        await _milestoneDao.upsertFromCloud(_rawMilestoneToCompanion(raw));
       }
 
       // 4. Record sync time.
@@ -162,6 +171,40 @@ class SyncService {
       }
       await _goalDao.purgeDeletedSyncedGoals();
 
+      // ── Milestones ─────────────────────────────────────────────────────────
+      final pendingMilestones = await _milestoneDao.getPendingSyncMilestones();
+
+      final toUpsertMilestones = <MilestoneEntry>[];
+      final deletedMilestoneIds = <String>[];
+      for (final entry in pendingMilestones) {
+        if (entry.syncStatus == 'pending_delete') {
+          deletedMilestoneIds.add(entry.id);
+        } else {
+          toUpsertMilestones.add(entry);
+        }
+      }
+
+      final milestoneResponse = await _client.syncMilestones(
+        milestones: toUpsertMilestones.map(_milestoneEntryToWireMap).toList(),
+        deletedIds: deletedMilestoneIds,
+        lastSyncAt: lastSyncAt,
+      );
+
+      final serverMilestones =
+          (milestoneResponse['milestones'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      for (final raw in serverMilestones) {
+        await _milestoneDao.upsertFromCloud(_rawMilestoneToCompanion(raw));
+      }
+      final serverDeletedMilestoneIds =
+          (milestoneResponse['deleted_ids'] as List<dynamic>? ?? []).cast<String>();
+      for (final id in serverDeletedMilestoneIds) {
+        await _milestoneDao.applyServerDeletion(id);
+      }
+      for (final entry in pendingMilestones) {
+        await _milestoneDao.markSynced(entry.id);
+      }
+      await _milestoneDao.purgeDeletedSyncedMilestones();
+
       await _meta.setLastSyncAt(now);
       return SyncResult.success;
     } on SocketException {
@@ -245,6 +288,46 @@ class SyncService {
       '${dt.year.toString().padLeft(4, '0')}-'
       '${dt.month.toString().padLeft(2, '0')}-'
       '${dt.day.toString().padLeft(2, '0')}';
+
+  /// Converts a [MilestoneEntry] from the local DB into the wire map format.
+  Map<String, dynamic> _milestoneEntryToWireMap(MilestoneEntry e) {
+    return {
+      'id': e.id,
+      'goal_id': e.goalId,
+      'user_id': '',
+      'title': e.title,
+      'date': _fmtDate(e.date),
+      'done': e.done,
+      'completed_at': e.completedAt?.toUtc().toIso8601String(),
+      'created_at': e.createdAt.toUtc().toIso8601String(),
+      'updated_at': e.updatedAt.toUtc().toIso8601String(),
+      'deleted_at': e.deletedAt?.toUtc().toIso8601String(),
+    };
+  }
+
+  /// Converts a raw JSON milestone map from the API into a [MilestonesCompanion].
+  MilestonesCompanion _rawMilestoneToCompanion(Map<String, dynamic> raw) {
+    final id = raw['id'] as String;
+    final createdAt = _parseDateTime(raw['created_at']) ?? DateTime.now().toUtc();
+    final updatedAt = _parseDateTime(raw['updated_at']) ?? createdAt;
+    final dateStr = raw['date'] as String? ?? '';
+    final date = dateStr.isNotEmpty ? DateTime.parse(dateStr) : DateTime.now();
+
+    return MilestonesCompanion(
+      id: Value(id),
+      goalId: Value(raw['goal_id'] as String? ?? ''),
+      userId: Value(raw['user_id'] as String? ?? ''),
+      title: Value(raw['title'] as String? ?? ''),
+      date: Value(date),
+      done: Value(raw['done'] as bool? ?? false),
+      completedAt: Value(_parseDateTime(raw['completed_at'])),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(_parseDateTime(raw['deleted_at'])),
+      syncStatus: const Value('synced'),
+      lastSyncedAt: Value(DateTime.now().toUtc()),
+    );
+  }
 
   /// Converts a [GoalEntry] from the local DB into the wire map format
   /// expected by the backend's goal sync endpoint.
