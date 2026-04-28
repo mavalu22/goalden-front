@@ -651,77 +651,105 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         const SizedBox(height: AppSpacing.xs),
         Row(
           children: [
-            // Start time picker
             Expanded(
-              child: Pressable(
-                onTap: _pickStartTime,
-                borderRadius: BorderRadius.circular(12),
-                hoverColor: AppColors.golden.withValues(alpha: 0.06),
-                child: _inputContainer(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.schedule_outlined,
-                            size: 15, color: AppColors.textMuted),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          _startTime != null
-                              ? _formatTime(_startTime!)
-                              : 'Start',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFont,
-                            fontSize: 13,
-                            color: _startTime != null
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _startTime != null
+                        ? AppColors.golden.withValues(alpha: 0.45)
+                        : AppColors.border,
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            // End time picker
-            Expanded(
-              child: Pressable(
-                onTap: _startTime != null ? _pickEndTime : null,
-                borderRadius: BorderRadius.circular(12),
-                hoverColor: _startTime != null
-                    ? AppColors.golden.withValues(alpha: 0.06)
-                    : null,
-                child: Opacity(
-                  opacity: _startTime != null ? 1.0 : 0.4,
-                  child: _inputContainer(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
+                child: Row(
+                  children: [
+                    // Clock icon — shared, sits to the left of start
+                    Padding(
+                      padding: const EdgeInsets.only(left: AppSpacing.md),
+                      child: Icon(
+                        Icons.schedule_outlined,
+                        size: 15,
+                        color: _startTime != null
+                            ? AppColors.golden.withValues(alpha: 0.8)
+                            : AppColors.textMuted,
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.schedule_outlined,
-                              size: 15, color: AppColors.textMuted),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            _endTime != null ? _formatTime(_endTime!) : 'End',
+                    ),
+                    // Start time tap target
+                    Expanded(
+                      child: Pressable(
+                        onTap: _pickStartTime,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          bottomLeft: Radius.circular(12),
+                        ),
+                        hoverColor: AppColors.golden.withValues(alpha: 0.06),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.sm,
+                          ),
+                          child: Text(
+                            _startTime != null
+                                ? _formatTime(_startTime!)
+                                : 'Start',
                             style: TextStyle(
                               fontFamily: AppTypography.bodyFont,
                               fontSize: 13,
-                              color: _endTime != null
+                              color: _startTime != null
                                   ? AppColors.textPrimary
                                   : AppColors.textMuted,
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                    // Arrow separator
+                    Text(
+                      '→',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 12,
+                        color: _startTime != null
+                            ? AppColors.textMuted
+                            : AppColors.border,
+                      ),
+                    ),
+                    // End time tap target
+                    Expanded(
+                      child: Pressable(
+                        onTap: _startTime != null ? _pickEndTime : null,
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(12),
+                          bottomRight: Radius.circular(12),
+                        ),
+                        hoverColor: _startTime != null
+                            ? AppColors.golden.withValues(alpha: 0.06)
+                            : null,
+                        child: Opacity(
+                          opacity: _startTime != null ? 1.0 : 0.45,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.sm,
+                            ),
+                            child: Text(
+                              _endTime != null
+                                  ? _formatTime(_endTime!)
+                                  : 'End',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFont,
+                                fontSize: 13,
+                                color: _endTime != null
+                                    ? AppColors.textPrimary
+                                    : AppColors.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
