@@ -432,6 +432,9 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
               return Stack(
                 clipBehavior: Clip.hardEdge,
                 children: [
+                  // Sized anchor so the Stack fills the container and
+                  // Clip.hardEdge has a non-zero clip rect to work against.
+                  const SizedBox.expand(),
                   // Hour ticks + labels
                   ..._tickHours.map((h) {
                     final x = _pct(h * 60) * totalWidth;
