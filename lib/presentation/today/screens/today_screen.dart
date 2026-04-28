@@ -354,8 +354,11 @@ class _TimelineRibbonState extends ConsumerState<_TimelineRibbon> {
                 final endMin = task.endTimeMinutes!;
                 final left = _pct(startMin) * totalWidth;
                 final right = _pct(endMin) * totalWidth;
-                final available = (totalWidth - left).clamp(1.0, double.infinity);
-                final width = (right - left).clamp(20.0, available);
+                final available = (totalWidth - left).clamp(0.0, double.infinity);
+                final natural = right - left;
+                // Apply 20px minimum only when available space allows it;
+                // always cap at available to prevent right-edge overflow.
+                final width = (natural < 20.0 ? 20.0 : natural).clamp(0.0, available);
 
                 final isPast = endMin <= nowMinutes;
                 final isNow = startMin <= nowMinutes && nowMinutes < endMin;
