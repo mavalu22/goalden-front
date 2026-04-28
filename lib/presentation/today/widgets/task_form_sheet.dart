@@ -701,7 +701,7 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.md,
-                        vertical: AppSpacing.md,
+                        vertical: AppSpacing.sm,
                       ),
                       child: Row(
                         children: [
