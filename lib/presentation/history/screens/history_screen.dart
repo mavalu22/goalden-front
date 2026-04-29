@@ -1503,58 +1503,65 @@ class _DrillDownTaskRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: gc?.dim ?? AppColors.background,
-          borderRadius: BorderRadius.circular(8),
-          border: gc != null
-              ? Border(
-                  top: const BorderSide(color: AppColors.border),
-                  right: const BorderSide(color: AppColors.border),
-                  bottom: const BorderSide(color: AppColors.border),
-                  left: BorderSide(color: gc.base, width: 3),
-                )
-              : Border.all(color: AppColors.border),
-        ),
-        child: Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
           children: [
             Container(
-              width: 18,
-              height: 18,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: task.done ? checkColor : Colors.transparent,
-                border: Border.all(
-                  color: task.done ? checkColor : borderColor,
-                  width: 1.5,
-                ),
+                color: gc?.dim ?? AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
               ),
-              child: task.done
-                  ? const Icon(Icons.check,
-                      size: 11, color: AppColors.background)
-                  : null,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                task.title,
-                style: TextStyle(
-                  fontFamily: AppTypography.bodyFont,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: task.done
-                      ? AppColors.textMuted
-                      : AppColors.textPrimary,
-                  decoration:
-                      task.done ? TextDecoration.lineThrough : null,
-                  decorationColor: AppColors.textMuted,
-                ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: task.done ? checkColor : Colors.transparent,
+                      border: Border.all(
+                        color: task.done ? checkColor : borderColor,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: task.done
+                        ? const Icon(Icons.check,
+                            size: 11, color: AppColors.background)
+                        : null,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      task.title,
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: task.done
+                            ? AppColors.textMuted
+                            : AppColors.textPrimary,
+                        decoration:
+                            task.done ? TextDecoration.lineThrough : null,
+                        decorationColor: AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (gc != null)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(width: 3, color: gc.base),
+              ),
           ],
         ),
       ),
