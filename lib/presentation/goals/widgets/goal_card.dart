@@ -53,200 +53,206 @@ class GoalCard extends ConsumerWidget {
         cursor: SystemMouseCursors.click,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
+          clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
             color: AppColors.surface.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(10),
-            border: Border(
-              left: BorderSide(color: gc.base, width: 4),
-              top: const BorderSide(color: AppColors.border),
-              right: const BorderSide(color: AppColors.border),
-              bottom: const BorderSide(color: AppColors.border),
-            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Header row ─────────────────────────────────────
-                Row(
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(width: 4, color: gc.base),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.star_rounded, color: gc.base, size: 14),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        goal.title,
-                        style: const TextStyle(
-                          fontFamily: AppTypography.bodyFont,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    if (isStalled)
-                      _Badge(
-                        label: 'stalled · ${stalledDays}d',
-                        color: AppColors.error,
-                      )
-                    else if (streakCount >= 2)
-                      _Badge(
-                        label: '🔥 ${streakCount}d',
-                        color: gc.base,
-                      ),
-                    const SizedBox(width: AppSpacing.xs),
-                    _KebabMenu(
-                      goal: goal,
-                      isArchived: isArchived,
-                      onEdit: onEdit,
-                      onArchive: onArchive,
-                      onDelete: onDelete,
-                    ),
-                  ],
-                ),
-
-                // ── Sub-header ─────────────────────────────────────
-                const SizedBox(height: 4),
-                Text(
-                  _subHeader(),
-                  style: const TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 10,
-                    color: AppColors.textMuted,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.md),
-
-                // ── Progress bar ───────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: AppColors.border,
-                          valueColor: AlwaysStoppedAnimation(gc.base),
-                          minHeight: 6,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      '${(progress * 100).round()}%',
-                      style: TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: gc.base,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-
-                // ── Tasks + deadline row ───────────────────────────
-                Row(
-                  children: [
-                    Text(
-                      '$doneCount of $totalTaskCount tasks done',
-                      style: const TextStyle(
-                        fontFamily: AppTypography.bodyFont,
-                        fontSize: 10,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (goal.deadline != null)
-                      _DeadlineChip(
-                        deadline: goal.deadline!,
-                        color: gc.base,
-                      ),
-                  ],
-                ),
-
-                // ── NEXT → box ─────────────────────────────────────
-                if (nextTask != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: AppSpacing.xs + 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: gc.dim,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: gc.base.withValues(alpha: 0.5)),
-                    ),
-                    child: Row(
+                    // ── Header row ─────────────────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'NEXT →',
-                          style: TextStyle(
-                            fontFamily: AppTypography.bodyFont,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: gc.base,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
+                        Icon(Icons.star_rounded, color: gc.base, size: 14),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            nextTask.title,
+                            goal.title,
                             style: const TextStyle(
                               fontFamily: AppTypography.bodyFont,
-                              fontSize: 11,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: AppSpacing.xs),
+                        if (isStalled)
+                          _Badge(
+                            label: 'stalled · ${stalledDays}d',
+                            color: AppColors.error,
+                          )
+                        else if (streakCount >= 2)
+                          _Badge(
+                            label: '🔥 ${streakCount}d',
+                            color: gc.base,
+                          ),
+                        const SizedBox(width: AppSpacing.xs),
+                        _KebabMenu(
+                          goal: goal,
+                          isArchived: isArchived,
+                          onEdit: onEdit,
+                          onArchive: onArchive,
+                          onDelete: onDelete,
+                        ),
                       ],
                     ),
-                  ),
-                ],
-
-                // ── 7-day mini bars ────────────────────────────────
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    for (var i = 0; i < sevenDays.length; i++) ...[
-                      Expanded(
-                        child: Container(
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: sevenDays[i]
-                                ? gc.base
-                                : AppColors.border.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(1),
+    
+                    // ── Sub-header ─────────────────────────────────────
+                    const SizedBox(height: 4),
+                    Text(
+                      _subHeader(),
+                      style: const TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 10,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+    
+                    const SizedBox(height: AppSpacing.md),
+    
+                    // ── Progress bar ───────────────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: AppColors.border,
+                              valueColor: AlwaysStoppedAnimation(gc.base),
+                              minHeight: 6,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          '${(progress * 100).round()}%',
+                          style: TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: gc.base,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+    
+                    // ── Tasks + deadline row ───────────────────────────
+                    Row(
+                      children: [
+                        Text(
+                          '$doneCount of $totalTaskCount tasks done',
+                          style: const TextStyle(
+                            fontFamily: AppTypography.bodyFont,
+                            fontSize: 10,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (goal.deadline != null)
+                          _DeadlineChip(
+                            deadline: goal.deadline!,
+                            color: gc.base,
+                          ),
+                      ],
+                    ),
+    
+                    // ── NEXT → box ─────────────────────────────────────
+                    if (nextTask != null) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xs + 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: gc.dim,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: gc.base.withValues(alpha: 0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'NEXT →',
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFont,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: gc.base,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                nextTask.title,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.bodyFont,
+                                  fontSize: 11,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      if (i < sevenDays.length - 1) const SizedBox(width: 3),
                     ],
+    
+                    // ── 7-day mini bars ────────────────────────────────
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        for (var i = 0; i < sevenDays.length; i++) ...[
+                          Expanded(
+                            child: Container(
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: sevenDays[i]
+                                    ? gc.base
+                                    : AppColors.border.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ),
+                          if (i < sevenDays.length - 1) const SizedBox(width: 3),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'M T W T F S S · last 7 days',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 8,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                const Text(
-                  'M T W T F S S · last 7 days',
-                  style: TextStyle(
-                    fontFamily: AppTypography.bodyFont,
-                    fontSize: 8,
-                    color: AppColors.textMuted,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -473,7 +479,7 @@ class GoalEmptySlot extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: AppColors.border,
               style: BorderStyle.solid,
