@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +57,8 @@ class AppDatabase extends _$AppDatabase {
           if (from < 8) {
             await m.createTable(milestones);
           }
+          // from < 9: priority column removed from Dart schema; SQLite column
+          // stays in place and is silently ignored by Drift.
         },
       );
 }

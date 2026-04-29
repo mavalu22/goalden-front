@@ -10,10 +10,6 @@ class Tasks extends Table {
   /// Stored as ISO-8601 date (UTC midnight)
   DateTimeColumn get date => dateTime()();
 
-  /// 'normal' | 'high'
-  TextColumn get priority =>
-      text().withDefault(const Constant('normal'))();
-
   TextColumn get note => text().nullable()();
 
   BoolColumn get done =>

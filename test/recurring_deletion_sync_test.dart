@@ -28,7 +28,6 @@ TasksCompanion _baseTask({
     id: Value(id),
     title: const Value('Test Task'),
     date: Value(date),
-    priority: const Value('normal'),
     done: const Value(false),
     recurrence: Value(recurrence),
     recurrenceDays: const Value(null),

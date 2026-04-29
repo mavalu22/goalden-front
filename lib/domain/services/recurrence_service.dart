@@ -62,7 +62,6 @@ class RecurrenceService {
             id: _uuid.v4(),
             title: source.title,
             date: today,
-            priority: source.priority,
             note: source.note,
             recurrence: TaskRecurrence.none,
             recurrenceDays: const [],

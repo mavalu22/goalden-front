@@ -178,7 +178,6 @@ class _TaskTileState extends ConsumerState<TaskTile>
   @override
   Widget build(BuildContext context) {
     final isCompleted = widget.task.done;
-    final isHigh = widget.task.priority == TaskPriority.high && !isCompleted;
     final goalColorMap = ref.watch(goalColorMapProvider);
     final goalColor = widget.task.goalId != null
         ? goalColorMap[widget.task.goalId]
@@ -310,9 +309,7 @@ class _TaskTileState extends ConsumerState<TaskTile>
                     border: Border.all(
                       color: _rowHovered
                           ? AppColors.goldenBorder.withValues(alpha: 0.5)
-                          : isHigh
-                              ? AppColors.goldenBorder
-                              : AppColors.border,
+                          : AppColors.border,
                     ),
                   ),
                   child: Stack(
@@ -389,10 +386,6 @@ class _TaskTileState extends ConsumerState<TaskTile>
                               size: 12,
                               color: AppColors.textMuted,
                             ),
-                          ],
-                          if (isHigh) ...[
-                            const SizedBox(width: AppSpacing.sm),
-                            const _HighBadge(),
                           ],
                           // Drag handle (hidden on desktop hover when action bar shows)
                           AnimatedOpacity(
@@ -607,28 +600,3 @@ class _ContextMenuItem extends StatelessWidget {
   }
 }
 
-class _HighBadge extends StatelessWidget {
-  const _HighBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.goldenDim,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.goldenBorder),
-      ),
-      child: const Text(
-        'HIGH',
-        style: TextStyle(
-          fontFamily: AppTypography.bodyFont,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: AppColors.golden,
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-  }
-}
