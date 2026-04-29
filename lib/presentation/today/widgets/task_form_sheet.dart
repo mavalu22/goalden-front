@@ -1401,22 +1401,30 @@ class _TimePickerDialog extends StatefulWidget {
 
 class _TimePickerDialogState extends State<_TimePickerDialog> {
   late final ScrollController _scrollController;
+  late final TextEditingController _textController;
+  late final FocusNode _focusNode;
+  String? _inputError;
 
-  static const _step = 30; // minutes per slot
+  static const _step = 30;
   static const _itemHeight = 40.0;
   static const _visibleItems = 7;
 
   @override
   void initState() {
     super.initState();
+    _textController = TextEditingController(
+      text: widget.initialTime != null ? _formatTime(widget.initialTime!) : '',
+    );
+    _focusNode = FocusNode();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _focusNode.requestFocus());
+
     final minMinutes = widget.minTime != null
         ? widget.minTime!.hour * 60 + widget.minTime!.minute + 1
         : 0;
     final initialMinutes = widget.initialTime != null
         ? widget.initialTime!.hour * 60 + widget.initialTime!.minute
         : 9 * 60;
-
-    // Find the index of the closest slot to initialMinutes in the filtered list
     var targetIndex = 0;
     var idx = 0;
     for (var m = 0; m < 24 * 60; m += _step) {
@@ -1425,7 +1433,6 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
         idx++;
       }
     }
-
     final offset =
         (targetIndex * _itemHeight - (_visibleItems / 2) * _itemHeight)
             .clamp(0.0, double.infinity);
@@ -1435,7 +1442,16 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _textController.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  String _formatTime(TimeOfDay t) {
+    final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final m = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$h:$m $period';
   }
 
   String _formatSlot(int minutes) {
@@ -1445,6 +1461,63 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
     final h12 = h % 12 == 0 ? 12 : h % 12;
     final mStr = m.toString().padLeft(2, '0');
     return '$h12:$mStr $period';
+  }
+
+  // Parses "H:MM [am/pm]", "HH:MM", "H am/pm"
+  TimeOfDay? _parseTime(String input) {
+    final s = input.trim().toLowerCase();
+    if (s.isEmpty) return null;
+
+    final withMin =
+        RegExp(r'^(\d{1,2}):(\d{2})\s*(am|pm)?$').firstMatch(s);
+    if (withMin != null) {
+      var hour = int.parse(withMin.group(1)!);
+      final minute = int.parse(withMin.group(2)!);
+      final period = withMin.group(3);
+      if (minute > 59) return null;
+      if (period != null) {
+        if (hour < 1 || hour > 12) return null;
+        if (period == 'am') hour = hour == 12 ? 0 : hour;
+        if (period == 'pm') hour = hour == 12 ? 12 : hour + 12;
+      } else {
+        if (hour > 23) return null;
+      }
+      return TimeOfDay(hour: hour, minute: minute);
+    }
+
+    final hourOnly = RegExp(r'^(\d{1,2})\s*(am|pm)$').firstMatch(s);
+    if (hourOnly != null) {
+      var hour = int.parse(hourOnly.group(1)!);
+      final period = hourOnly.group(2)!;
+      if (hour < 1 || hour > 12) return null;
+      if (period == 'am') hour = hour == 12 ? 0 : hour;
+      if (period == 'pm') hour = hour == 12 ? 12 : hour + 12;
+      return TimeOfDay(hour: hour, minute: 0);
+    }
+
+    return null;
+  }
+
+  void _submitText() {
+    final input = _textController.text;
+    if (input.trim().isEmpty) {
+      setState(() => _inputError = 'Enter a time');
+      return;
+    }
+    final parsed = _parseTime(input);
+    if (parsed == null) {
+      setState(() => _inputError = 'Use e.g. 2:15 PM or 14:15');
+      return;
+    }
+    if (widget.minTime != null) {
+      final parsedMin = parsed.hour * 60 + parsed.minute;
+      final minMin = widget.minTime!.hour * 60 + widget.minTime!.minute;
+      if (parsedMin <= minMin) {
+        setState(() => _inputError = 'Must be after start time');
+        return;
+      }
+    }
+    Navigator.of(context).pop(parsed);
   }
 
   @override
@@ -1468,44 +1541,98 @@ class _TimePickerDialogState extends State<_TimePickerDialog> {
         side: const BorderSide(color: AppColors.border),
       ),
       child: SizedBox(
-        width: 180,
+        width: 210,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
+            // Text input row
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.sm),
+                  AppSpacing.md, AppSpacing.sm, AppSpacing.xs, AppSpacing.xs),
               child: Row(
                 children: [
-                  const Icon(Icons.schedule_outlined,
-                      size: 14, color: AppColors.textMuted),
-                  const SizedBox(width: AppSpacing.xs),
-                  const Expanded(
-                    child: Text(
-                      'Select time',
-                      style: TextStyle(
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      focusNode: _focusNode,
+                      style: const TextStyle(
                         fontFamily: AppTypography.bodyFont,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textMuted,
-                        letterSpacing: 0.5,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. 2:15 PM or 14:15',
+                        hintStyle: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                      ),
+                      onSubmitted: (_) => _submitText(),
+                      onChanged: (_) {
+                        if (_inputError != null) {
+                          setState(() => _inputError = null);
+                        }
+                      },
+                    ),
+                  ),
+                  Pressable(
+                    onTap: _submitText,
+                    borderRadius: BorderRadius.circular(8),
+                    hoverColor: AppColors.golden.withValues(alpha: 0.1),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                      decoration: BoxDecoration(
+                        color: AppColors.goldenDim,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.goldenBorder),
+                      ),
+                      child: const Text(
+                        'Set',
+                        style: TextStyle(
+                          fontFamily: AppTypography.bodyFont,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.golden,
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.xs),
                   Pressable(
                     onTap: () => Navigator.of(context).pop(),
                     borderRadius: BorderRadius.circular(20),
                     hoverColor: AppColors.textMuted.withValues(alpha: 0.1),
                     child: const Padding(
                       padding: EdgeInsets.all(4),
-                      child:
-                          Icon(Icons.close, size: 14, color: AppColors.textMuted),
+                      child: Icon(Icons.close,
+                          size: 14, color: AppColors.textMuted),
                     ),
                   ),
                 ],
               ),
             ),
+            if (_inputError != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md, 0, AppSpacing.md, AppSpacing.xs),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _inputError!,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.bodyFont,
+                      fontSize: 11,
+                      color: AppColors.error,
+                    ),
+                  ),
+                ),
+              ),
             const Divider(height: 1, color: AppColors.border),
             SizedBox(
               height: _itemHeight * _visibleItems,
