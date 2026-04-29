@@ -380,7 +380,6 @@ class _TaskRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isHigh = task.priority == TaskPriority.high && !task.done;
     final goalColorMap = ref.watch(goalColorMapProvider);
     final gc = task.goalId != null ? goalColorMap[task.goalId] : null;
 
@@ -484,17 +483,6 @@ class _TaskRow extends ConsumerWidget {
                 ),
               ),
             ),
-            if (isHigh) ...[
-              const SizedBox(width: AppSpacing.xs),
-              Container(
-                width: 5,
-                height: 5,
-                decoration: const BoxDecoration(
-                  color: AppColors.golden,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
           ],
         ),
       ),

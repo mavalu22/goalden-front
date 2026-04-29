@@ -289,7 +289,6 @@ class _ColumnTaskRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isHigh = task.priority == TaskPriority.high && !task.done;
     final goalColorMap = ref.watch(goalColorMapProvider);
     final gc = task.goalId != null ? goalColorMap[task.goalId] : null;
     final row = AnimatedOpacity(
@@ -383,17 +382,6 @@ class _ColumnTaskRow extends ConsumerWidget {
                 ),
               ),
             ),
-            if (isHigh) ...[
-              const SizedBox(width: 4),
-              Container(
-                width: 5,
-                height: 5,
-                decoration: const BoxDecoration(
-                  color: AppColors.golden,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
           ],
         ),
       ),

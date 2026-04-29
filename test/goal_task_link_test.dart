@@ -23,7 +23,6 @@ TasksCompanion _task({
     id: Value(id),
     title: const Value('Test Task'),
     date: Value(DateTime(2026, 5, 1)),
-    priority: const Value('normal'),
     done: const Value(false),
     recurrence: const Value('none'),
     sortOrder: const Value(0),

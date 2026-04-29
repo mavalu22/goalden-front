@@ -228,7 +228,6 @@ class SyncService {
       'user_id': '', // server derives user_id from the JWT; omit or blank
       'title': e.title,
       'date': _fmtDate(e.date),
-      'priority': e.priority,
       'note': e.note,
       'done': e.done,
       'recurrence': e.recurrence,
@@ -262,7 +261,6 @@ class SyncService {
       id: Value(id),
       title: Value(title),
       date: Value(date),
-      priority: Value(raw['priority'] as String? ?? 'normal'),
       note: Value(raw['note'] as String?),
       done: Value(raw['done'] as bool? ?? false),
       recurrence: Value(raw['recurrence'] as String? ?? 'none'),

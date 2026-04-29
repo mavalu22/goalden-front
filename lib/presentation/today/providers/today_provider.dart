@@ -71,7 +71,6 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
   Future<void> createTask(
     String title, {
     DateTime? date,
-    TaskPriority priority = TaskPriority.normal,
     String? note,
     TaskRecurrence recurrence = TaskRecurrence.none,
     List<int> recurrenceDays = const [],
@@ -86,7 +85,6 @@ class TaskActionsNotifier extends AsyncNotifier<void> {
       id: _uuid.v4(),
       title: title.trim(),
       date: date ?? DateTime(now.year, now.month, now.day),
-      priority: priority,
       note: note?.trim().isEmpty == true ? null : note?.trim(),
       recurrence: recurrence,
       recurrenceDays: recurrenceDays,

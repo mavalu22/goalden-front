@@ -9,7 +9,7 @@ import '../../../providers/database_provider.dart';
 import '../../../providers/sync_provider.dart';
 
 export '../../../domain/models/goal.dart' show Goal, GoalStatus;
-export '../../../domain/models/task.dart' show Task, TaskPriority;
+export '../../../domain/models/task.dart' show Task;
 export '../../../core/theme/goal_colors.dart' show GoalColor;
 
 const _maxTitleLength = 500;

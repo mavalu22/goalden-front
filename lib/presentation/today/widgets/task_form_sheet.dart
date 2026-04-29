@@ -141,7 +141,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   final _bulletFormatter = const _BulletFormatter();
 
   late DateTime _selectedDate;
-  late TaskPriority _priority;
   late TaskRecurrence _recurrence;
   late Set<int> _recurrenceDays;
   TimeOfDay? _startTime;
@@ -158,7 +157,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       return _titleController.text.trim() != t.title ||
           _noteController.text.trim() != (t.note ?? '') ||
           _selectedDate != t.date ||
-          _priority != t.priority ||
           _recurrence != t.recurrence ||
           !_setEquals(_recurrenceDays, Set<int>.from(t.recurrenceDays)) ||
           _toMinutes(_startTime) != t.startTimeMinutes ||
@@ -251,7 +249,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       _titleController.text = t.title;
       _noteController.text = t.note ?? '';
       _selectedDate = t.date;
-      _priority = t.priority;
       _recurrence = t.recurrence;
       _recurrenceDays = Set<int>.from(t.recurrenceDays);
       _selectedGoalId = t.goalId;
@@ -270,7 +267,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       final now = DateTime.now();
       _selectedDate =
           widget.defaultDate ?? DateTime(now.year, now.month, now.day);
-      _priority = TaskPriority.normal;
       _recurrence = TaskRecurrence.none;
       _recurrenceDays = {};
       _selectedGoalId = widget.defaultGoalId;
@@ -371,7 +367,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
             widget.task!.copyWith(
               title: _titleController.text.trim(),
               date: _selectedDate,
-              priority: _priority,
               note: note,
               recurrence: _recurrence,
               recurrenceDays: days,
@@ -384,7 +379,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
       await ref.read(taskActionsProvider.notifier).createTask(
             _titleController.text.trim(),
             date: _selectedDate,
-            priority: _priority,
             note: note,
             recurrence: _recurrence,
             recurrenceDays: days,
@@ -603,27 +597,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
               ),
             ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        // Priority field
-        const _FieldLabel('Priority'),
-        const SizedBox(height: AppSpacing.xs),
-        Row(
-          children: [
-            _PriorityButton(
-              label: 'Normal',
-              selected: _priority == TaskPriority.normal,
-              onTap: () => setState(() => _priority = TaskPriority.normal),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            _PriorityButton(
-              label: 'High',
-              selected: _priority == TaskPriority.high,
-              onTap: () => setState(() => _priority = TaskPriority.high),
-              isHigh: true,
-            ),
-          ],
         ),
         const SizedBox(height: AppSpacing.lg),
 
@@ -1135,75 +1108,6 @@ class _FieldLabel extends StatelessWidget {
         fontWeight: FontWeight.w600,
         color: AppColors.textMuted,
         letterSpacing: 1.0,
-      ),
-    );
-  }
-}
-
-// ─── Priority button ──────────────────────────────────────────────────────────
-
-class _PriorityButton extends StatelessWidget {
-  const _PriorityButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.isHigh = false,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final bool isHigh;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      hoverColor: isHigh
-          ? AppColors.golden.withValues(alpha: 0.08)
-          : AppColors.textSecondary.withValues(alpha: 0.08),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: selected
-              ? (isHigh ? AppColors.goldenDim : AppColors.surface)
-              : AppColors.background,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected
-                ? (isHigh ? AppColors.goldenBorder : AppColors.textSecondary)
-                : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isHigh)
-              Icon(
-                Icons.flag_outlined,
-                size: 14,
-                color: selected ? AppColors.golden : AppColors.textMuted,
-              ),
-            if (isHigh) const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: AppTypography.bodyFont,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: selected
-                    ? (isHigh ? AppColors.golden : AppColors.textPrimary)
-                    : AppColors.textMuted,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

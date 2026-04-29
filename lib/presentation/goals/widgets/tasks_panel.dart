@@ -196,14 +196,9 @@ class _TasksPanelState extends ConsumerState<TasksPanel> {
                 _TaskFilter.all => allTasks,
               };
 
-              // Sort: high priority undone → normal undone → done; secondary by date.
+              // Sort: undone → done; secondary by date.
               filtered.sort((a, b) {
                 if (a.done != b.done) return a.done ? 1 : -1;
-                if (!a.done) {
-                  final aPriority = a.priority == TaskPriority.high ? 0 : 1;
-                  final bPriority = b.priority == TaskPriority.high ? 0 : 1;
-                  if (aPriority != bPriority) return aPriority - bPriority;
-                }
                 return a.date.compareTo(b.date);
               });
 
@@ -373,9 +368,7 @@ class _GoalTaskRow extends StatelessWidget {
                         fontFamily: AppTypography.bodyFont,
                         fontSize: 13,
                         color: AppColors.textPrimary,
-                        fontWeight: task.priority == TaskPriority.high
-                            ? FontWeight.w600
-                            : FontWeight.w400,
+                        fontWeight: FontWeight.w400,
                         decoration: isDone
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
