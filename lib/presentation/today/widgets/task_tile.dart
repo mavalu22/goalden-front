@@ -307,25 +307,24 @@ class _TaskTileState extends ConsumerState<TaskTile>
                         ? goalColor.dim
                         : AppColors.surfaceElevated,
                     borderRadius: BorderRadius.circular(12),
-                    border: () {
-                      final sideColor = _rowHovered
+                    border: Border.all(
+                      color: _rowHovered
                           ? AppColors.goldenBorder.withValues(alpha: 0.5)
                           : isHigh
                               ? AppColors.goldenBorder
-                              : AppColors.border;
-                      if (goalColor != null) {
-                        return Border(
-                          top: BorderSide(color: sideColor),
-                          right: BorderSide(color: sideColor),
-                          bottom: BorderSide(color: sideColor),
-                          left: BorderSide(color: goalColor.base, width: 3),
-                        );
-                      }
-                      return Border.all(color: sideColor);
-                    }(),
+                              : AppColors.border,
+                    ),
                   ),
                   child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
+                      if (goalColor != null)
+                        Positioned(
+                          left: -AppSpacing.lg,
+                          top: -(widget.compact ? AppSpacing.sm : AppSpacing.lg),
+                          bottom: -(widget.compact ? AppSpacing.sm : AppSpacing.lg),
+                          child: Container(width: 3, color: goalColor.base),
+                        ),
                       // Normal row content
                       Row(
                         children: [
