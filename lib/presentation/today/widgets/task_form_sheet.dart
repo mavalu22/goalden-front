@@ -317,16 +317,14 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   }
 
   Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
+    final picked = await showDialog<TimeOfDay>(
       context: context,
-      initialTime: _startTime ?? TimeOfDay.now(),
-      builder: _timePickerTheme,
+      builder: (_) => _TimePickerDialog(initialTime: _startTime),
     );
     if (picked != null) {
       setState(() {
         _startTime = picked;
         _timeError = null;
-        // Auto-clear end time if it's now before start
         if (_endTime != null && _toMinutes(_endTime)! <= _toMinutes(picked)!) {
           _endTime = null;
         }
@@ -335,17 +333,14 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
   }
 
   Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
+    final picked = await showDialog<TimeOfDay>(
       context: context,
-      initialTime: _endTime ?? _startTime ?? TimeOfDay.now(),
-      builder: _timePickerTheme,
+      builder: (_) => _TimePickerDialog(
+        initialTime: _endTime,
+        minTime: _startTime,
+      ),
     );
     if (picked != null) {
-      if (_startTime != null &&
-          _toMinutes(picked)! <= _toMinutes(_startTime)!) {
-        setState(() => _timeError = 'End time must be after start time');
-        return;
-      }
       setState(() {
         _endTime = picked;
         _timeError = null;
@@ -358,20 +353,6 @@ class _TaskFormContentState extends ConsumerState<_TaskFormContent> {
         _endTime = null;
         _timeError = null;
       });
-
-  Widget _timePickerTheme(BuildContext context, Widget? child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.golden,
-            surface: AppColors.surface,
-            onSurface: AppColors.textPrimary,
-          ),
-          dialogTheme: const DialogThemeData(
-            backgroundColor: AppColors.background,
-          ),
-        ),
-        child: child!,
-      );
 
   Future<void> _submit() async {
     if (_titleController.text.trim().isEmpty) {
@@ -1402,6 +1383,187 @@ class _MetaRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Time picker dialog ───────────────────────────────────────────────────────
+
+class _TimePickerDialog extends StatefulWidget {
+  const _TimePickerDialog({this.initialTime, this.minTime});
+
+  final TimeOfDay? initialTime;
+  final TimeOfDay? minTime;
+
+  @override
+  State<_TimePickerDialog> createState() => _TimePickerDialogState();
+}
+
+class _TimePickerDialogState extends State<_TimePickerDialog> {
+  late final ScrollController _scrollController;
+
+  static const _step = 30; // minutes per slot
+  static const _itemHeight = 40.0;
+  static const _visibleItems = 7;
+
+  @override
+  void initState() {
+    super.initState();
+    final minMinutes = widget.minTime != null
+        ? widget.minTime!.hour * 60 + widget.minTime!.minute + 1
+        : 0;
+    final initialMinutes = widget.initialTime != null
+        ? widget.initialTime!.hour * 60 + widget.initialTime!.minute
+        : 9 * 60;
+
+    // Find the index of the closest slot to initialMinutes in the filtered list
+    var targetIndex = 0;
+    var idx = 0;
+    for (var m = 0; m < 24 * 60; m += _step) {
+      if (m >= minMinutes) {
+        if (m <= initialMinutes) targetIndex = idx;
+        idx++;
+      }
+    }
+
+    final offset =
+        (targetIndex * _itemHeight - (_visibleItems / 2) * _itemHeight)
+            .clamp(0.0, double.infinity);
+    _scrollController = ScrollController(initialScrollOffset: offset);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  String _formatSlot(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    final period = h < 12 ? 'AM' : 'PM';
+    final h12 = h % 12 == 0 ? 12 : h % 12;
+    final mStr = m.toString().padLeft(2, '0');
+    return '$h12:$mStr $period';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final minMinutes = widget.minTime != null
+        ? widget.minTime!.hour * 60 + widget.minTime!.minute + 1
+        : 0;
+    final selectedMinutes = widget.initialTime != null
+        ? widget.initialTime!.hour * 60 + widget.initialTime!.minute
+        : -1;
+
+    final slots = <int>[];
+    for (var m = 0; m < 24 * 60; m += _step) {
+      if (m >= minMinutes) slots.add(m);
+    }
+
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: SizedBox(
+        width: 180,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.sm),
+              child: Row(
+                children: [
+                  const Icon(Icons.schedule_outlined,
+                      size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: AppSpacing.xs),
+                  const Expanded(
+                    child: Text(
+                      'Select time',
+                      style: TextStyle(
+                        fontFamily: AppTypography.bodyFont,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  Pressable(
+                    onTap: () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(20),
+                    hoverColor: AppColors.textMuted.withValues(alpha: 0.1),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child:
+                          Icon(Icons.close, size: 14, color: AppColors.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.border),
+            SizedBox(
+              height: _itemHeight * _visibleItems,
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: slots.length,
+                itemExtent: _itemHeight,
+                itemBuilder: (_, i) {
+                  final minutes = slots[i];
+                  final isSelected = minutes == selectedMinutes;
+                  final time =
+                      TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60);
+                  return MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(time),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 100),
+                        height: _itemHeight,
+                        color: isSelected
+                            ? AppColors.golden.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              child: isSelected
+                                  ? const Icon(Icons.check,
+                                      size: 12, color: AppColors.golden)
+                                  : null,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              _formatSlot(minutes),
+                              style: TextStyle(
+                                fontFamily: AppTypography.bodyFont,
+                                fontSize: 13,
+                                color: isSelected
+                                    ? AppColors.golden
+                                    : AppColors.textPrimary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
